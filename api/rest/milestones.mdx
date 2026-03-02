@@ -1,0 +1,341 @@
+---
+title: 'Milestones API'
+description: 'Retrieve GitHub milestones using the REST API'
+---
+
+## List Milestones
+
+<ParamField query="GET" path="/api/v0/milestones/">
+  Retrieve a paginated list of GitHub milestones.
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="organization" type="string" optional>
+  Filter milestones by organization that owns the repository.
+  
+  Example: `OWASP`
+</ParamField>
+
+<ParamField query="repository" type="string" optional>
+  Filter milestones by repository name.
+  
+  Example: `Nest`
+</ParamField>
+
+<ParamField query="state" type="string" optional>
+  Filter milestones by state.
+  - `open` - Open milestones
+  - `closed` - Closed milestones
+</ParamField>
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `updated_at` - Last update date (ascending)
+  - `-updated_at` - Last update date (descending)
+  
+  Default: `-created_at,-updated_at`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="items" type="array">
+  Array of milestone objects
+  
+  <Expandable title="Milestone Object">
+    <ResponseField name="created_at" type="datetime">
+      ISO 8601 timestamp when the milestone was created
+    </ResponseField>
+    
+    <ResponseField name="number" type="integer">
+      Milestone number
+    </ResponseField>
+    
+    <ResponseField name="state" type="string">
+      Milestone state: `open` or `closed`
+    </ResponseField>
+    
+    <ResponseField name="title" type="string">
+      Milestone title
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="datetime">
+      ISO 8601 timestamp when the milestone was last updated
+    </ResponseField>
+    
+    <ResponseField name="url" type="string">
+      GitHub URL for the milestone
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="count" type="integer">
+  Total number of milestones matching the filter
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List all milestones
+    curl -X GET "https://nest.owasp.org/api/v0/milestones/"
+    
+    # Filter by organization
+    curl -X GET "https://nest.owasp.org/api/v0/milestones/?organization=OWASP"
+    
+    # Filter by repository
+    curl -X GET "https://nest.owasp.org/api/v0/milestones/?repository=Nest"
+    
+    # Filter by organization and repository
+    curl -X GET "https://nest.owasp.org/api/v0/milestones/?organization=OWASP&repository=Nest"
+    
+    # Filter by state (open milestones only)
+    curl -X GET "https://nest.owasp.org/api/v0/milestones/?state=open"
+    
+    # Sort by update date (most recently updated first)
+    curl -X GET "https://nest.owasp.org/api/v0/milestones/?ordering=-updated_at"
+    
+    # Combine filters and pagination
+    curl -X GET "https://nest.owasp.org/api/v0/milestones/?organization=OWASP&state=open&page=1&limit=20"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # List all milestones
+    response = requests.get("https://nest.owasp.org/api/v0/milestones/")
+    milestones = response.json()
+    
+    # Filter by organization
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/milestones/",
+        params={"organization": "OWASP"}
+    )
+    
+    # Filter by repository
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/milestones/",
+        params={"repository": "Nest"}
+    )
+    
+    # Filter by organization and repository
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/milestones/",
+        params={
+            "organization": "OWASP",
+            "repository": "Nest"
+        }
+    )
+    
+    # Filter by state (open milestones only)
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/milestones/",
+        params={"state": "open"}
+    )
+    
+    # Sort by update date
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/milestones/",
+        params={"ordering": "-updated_at"}
+    )
+    
+    # Print milestone titles
+    for milestone in milestones['items']:
+        print(f"[{milestone['state'].upper()}] {milestone['title']}")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // List all milestones
+    const response = await fetch('https://nest.owasp.org/api/v0/milestones/');
+    const milestones = await response.json();
+    
+    // Filter by organization
+    const orgUrl = new URL('https://nest.owasp.org/api/v0/milestones/');
+    orgUrl.searchParams.set('organization', 'OWASP');
+    const orgResponse = await fetch(orgUrl);
+    
+    // Filter by repository
+    const repoUrl = new URL('https://nest.owasp.org/api/v0/milestones/');
+    repoUrl.searchParams.set('repository', 'Nest');
+    const repoResponse = await fetch(repoUrl);
+    
+    // Filter by organization and repository
+    const combinedUrl = new URL('https://nest.owasp.org/api/v0/milestones/');
+    combinedUrl.searchParams.set('organization', 'OWASP');
+    combinedUrl.searchParams.set('repository', 'Nest');
+    const combinedResponse = await fetch(combinedUrl);
+    
+    // Filter by state (open milestones only)
+    const openUrl = new URL('https://nest.owasp.org/api/v0/milestones/');
+    openUrl.searchParams.set('state', 'open');
+    const openResponse = await fetch(openUrl);
+    
+    // Sort by update date
+    const sortedUrl = new URL('https://nest.owasp.org/api/v0/milestones/');
+    sortedUrl.searchParams.set('ordering', '-updated_at');
+    const sortedResponse = await fetch(sortedUrl);
+    
+    // Print milestone titles
+    milestones.items.forEach(milestone => {
+      console.log(`[${milestone.state.toUpperCase()}] ${milestone.title}`);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Milestone
+
+<ParamField query="GET" path="/api/v0/milestones/{organization_id}/{repository_id}/{milestone_id}">
+  Retrieve detailed information about a specific GitHub milestone.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="organization_id" type="string" required>
+  Organization login/username that owns the repository.
+  
+  Example: `OWASP`
+</ParamField>
+
+<ParamField path="repository_id" type="string" required>
+  Repository name.
+  
+  Example: `Nest`
+</ParamField>
+
+<ParamField path="milestone_id" type="integer" required>
+  Milestone number.
+  
+  Example: `1`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="created_at" type="datetime">
+  ISO 8601 timestamp when the milestone was created
+</ResponseField>
+
+<ResponseField name="number" type="integer">
+  Milestone number
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Milestone state: `open` or `closed`
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Milestone title
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  ISO 8601 timestamp when the milestone was last updated
+</ResponseField>
+
+<ResponseField name="url" type="string">
+  GitHub URL for the milestone
+</ResponseField>
+
+<ResponseField name="body" type="string">
+  Milestone description/body content
+</ResponseField>
+
+<ResponseField name="closed_issues_count" type="integer">
+  Number of closed issues in this milestone
+</ResponseField>
+
+<ResponseField name="due_on" type="datetime" optional>
+  ISO 8601 timestamp when the milestone is due (null if no due date)
+</ResponseField>
+
+<ResponseField name="open_issues_count" type="integer">
+  Number of open issues in this milestone
+</ResponseField>
+
+### Error Responses
+
+<ResponseField name="404 Not Found" type="object">
+  <Expandable title="Error Schema">
+    <ResponseField name="message" type="string">
+      Error message: "Milestone not found"
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get milestone by organization, repository, and milestone number
+    curl -X GET "https://nest.owasp.org/api/v0/milestones/OWASP/Nest/1"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # Get milestone details
+    organization = "OWASP"
+    repository = "Nest"
+    milestone_number = 1
+    
+    response = requests.get(
+        f"https://nest.owasp.org/api/v0/milestones/{organization}/{repository}/{milestone_number}"
+    )
+    
+    if response.status_code == 200:
+        milestone = response.json()
+        print(f"Title: {milestone['title']}")
+        print(f"State: {milestone['state']}")
+        print(f"Open Issues: {milestone['open_issues_count']}")
+        print(f"Closed Issues: {milestone['closed_issues_count']}")
+        print(f"Due On: {milestone.get('due_on', 'No due date')}")
+        print(f"\nDescription:\n{milestone['body']}")
+    elif response.status_code == 404:
+        print("Milestone not found")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // Get milestone details
+    const organization = 'OWASP';
+    const repository = 'Nest';
+    const milestoneNumber = 1;
+    
+    const response = await fetch(
+      `https://nest.owasp.org/api/v0/milestones/${organization}/${repository}/${milestoneNumber}`
+    );
+    
+    if (response.ok) {
+      const milestone = await response.json();
+      console.log(`Title: ${milestone.title}`);
+      console.log(`State: ${milestone.state}`);
+      console.log(`Open Issues: ${milestone.open_issues_count}`);
+      console.log(`Closed Issues: ${milestone.closed_issues_count}`);
+      console.log(`Due On: ${milestone.due_on || 'No due date'}`);
+      console.log(`\nDescription:\n${milestone.body}`);
+    } else if (response.status === 404) {
+      console.log('Milestone not found');
+    }
+    ```
+  </Tab>
+</Tabs>

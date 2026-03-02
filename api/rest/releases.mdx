@@ -1,0 +1,314 @@
+---
+title: 'Releases API'
+description: 'Retrieve GitHub releases using the REST API'
+---
+
+## List Releases
+
+<ParamField query="GET" path="/api/v0/releases/">
+  Retrieve a paginated list of GitHub releases.
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="organization" type="string" optional>
+  Filter releases by organization that owns the repository.
+  
+  Example: `OWASP`
+</ParamField>
+
+<ParamField query="repository" type="string" optional>
+  Filter releases by repository name.
+  
+  Example: `Nest`
+</ParamField>
+
+<ParamField query="tag_name" type="string" optional>
+  Filter releases by tag name.
+  
+  Example: `0.2.10`
+</ParamField>
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `published_at` - Publication date (ascending)
+  - `-published_at` - Publication date (descending)
+  
+  Default: `-published_at,-created_at`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="items" type="array">
+  Array of release objects
+  
+  <Expandable title="Release Object">
+    <ResponseField name="created_at" type="datetime">
+      ISO 8601 timestamp when the release was created
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Release name
+    </ResponseField>
+    
+    <ResponseField name="published_at" type="datetime" optional>
+      ISO 8601 timestamp when the release was published (null if unpublished)
+    </ResponseField>
+    
+    <ResponseField name="tag_name" type="string">
+      Git tag name associated with the release
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="count" type="integer">
+  Total number of releases matching the filter
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List all releases
+    curl -X GET "https://nest.owasp.org/api/v0/releases/"
+    
+    # Filter by organization
+    curl -X GET "https://nest.owasp.org/api/v0/releases/?organization=OWASP"
+    
+    # Filter by repository
+    curl -X GET "https://nest.owasp.org/api/v0/releases/?repository=Nest"
+    
+    # Filter by organization and repository
+    curl -X GET "https://nest.owasp.org/api/v0/releases/?organization=OWASP&repository=Nest"
+    
+    # Filter by tag name
+    curl -X GET "https://nest.owasp.org/api/v0/releases/?tag_name=0.2.10"
+    
+    # Sort by creation date (newest first)
+    curl -X GET "https://nest.owasp.org/api/v0/releases/?ordering=-created_at"
+    
+    # Sort by publication date (most recently published first)
+    curl -X GET "https://nest.owasp.org/api/v0/releases/?ordering=-published_at"
+    
+    # Combine filters and pagination
+    curl -X GET "https://nest.owasp.org/api/v0/releases/?organization=OWASP&page=1&limit=20"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # List all releases
+    response = requests.get("https://nest.owasp.org/api/v0/releases/")
+    releases = response.json()
+    
+    # Filter by organization
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/releases/",
+        params={"organization": "OWASP"}
+    )
+    
+    # Filter by repository
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/releases/",
+        params={"repository": "Nest"}
+    )
+    
+    # Filter by organization and repository
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/releases/",
+        params={
+            "organization": "OWASP",
+            "repository": "Nest"
+        }
+    )
+    
+    # Filter by tag name
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/releases/",
+        params={"tag_name": "0.2.10"}
+    )
+    
+    # Sort by publication date
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/releases/",
+        params={"ordering": "-published_at"}
+    )
+    
+    # Print release names and tags
+    for release in releases['items']:
+        print(f"{release['name']} ({release['tag_name']})")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // List all releases
+    const response = await fetch('https://nest.owasp.org/api/v0/releases/');
+    const releases = await response.json();
+    
+    // Filter by organization
+    const orgUrl = new URL('https://nest.owasp.org/api/v0/releases/');
+    orgUrl.searchParams.set('organization', 'OWASP');
+    const orgResponse = await fetch(orgUrl);
+    
+    // Filter by repository
+    const repoUrl = new URL('https://nest.owasp.org/api/v0/releases/');
+    repoUrl.searchParams.set('repository', 'Nest');
+    const repoResponse = await fetch(repoUrl);
+    
+    // Filter by organization and repository
+    const combinedUrl = new URL('https://nest.owasp.org/api/v0/releases/');
+    combinedUrl.searchParams.set('organization', 'OWASP');
+    combinedUrl.searchParams.set('repository', 'Nest');
+    const combinedResponse = await fetch(combinedUrl);
+    
+    // Filter by tag name
+    const tagUrl = new URL('https://nest.owasp.org/api/v0/releases/');
+    tagUrl.searchParams.set('tag_name', '0.2.10');
+    const tagResponse = await fetch(tagUrl);
+    
+    // Sort by publication date
+    const sortedUrl = new URL('https://nest.owasp.org/api/v0/releases/');
+    sortedUrl.searchParams.set('ordering', '-published_at');
+    const sortedResponse = await fetch(sortedUrl);
+    
+    // Print release names and tags
+    releases.items.forEach(release => {
+      console.log(`${release.name} (${release.tag_name})`);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Release
+
+<ParamField query="GET" path="/api/v0/releases/{organization_id}/{repository_id}/{release_id}">
+  Retrieve detailed information about a specific GitHub release.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="organization_id" type="string" required>
+  Organization login/username that owns the repository.
+  
+  Example: `OWASP`
+</ParamField>
+
+<ParamField path="repository_id" type="string" required>
+  Repository name.
+  
+  Example: `Nest`
+</ParamField>
+
+<ParamField path="release_id" type="string" required>
+  Release tag name.
+  
+  Example: `0.2.10`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="created_at" type="datetime">
+  ISO 8601 timestamp when the release was created
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Release name
+</ResponseField>
+
+<ResponseField name="published_at" type="datetime" optional>
+  ISO 8601 timestamp when the release was published (null if unpublished)
+</ResponseField>
+
+<ResponseField name="tag_name" type="string">
+  Git tag name associated with the release
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Release description/notes
+</ResponseField>
+
+### Error Responses
+
+<ResponseField name="404 Not Found" type="object">
+  <Expandable title="Error Schema">
+    <ResponseField name="message" type="string">
+      Error message: "Release not found"
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get release by organization, repository, and tag name
+    curl -X GET "https://nest.owasp.org/api/v0/releases/OWASP/Nest/0.2.10"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # Get release details
+    organization = "OWASP"
+    repository = "Nest"
+    tag_name = "0.2.10"
+    
+    response = requests.get(
+        f"https://nest.owasp.org/api/v0/releases/{organization}/{repository}/{tag_name}"
+    )
+    
+    if response.status_code == 200:
+        release = response.json()
+        print(f"Name: {release['name']}")
+        print(f"Tag: {release['tag_name']}")
+        print(f"Created: {release['created_at']}")
+        print(f"Published: {release.get('published_at', 'Not published')}")
+        print(f"\nDescription:\n{release['description']}")
+    elif response.status_code == 404:
+        print("Release not found")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // Get release details
+    const organization = 'OWASP';
+    const repository = 'Nest';
+    const tagName = '0.2.10';
+    
+    const response = await fetch(
+      `https://nest.owasp.org/api/v0/releases/${organization}/${repository}/${tagName}`
+    );
+    
+    if (response.ok) {
+      const release = await response.json();
+      console.log(`Name: ${release.name}`);
+      console.log(`Tag: ${release.tag_name}`);
+      console.log(`Created: ${release.created_at}`);
+      console.log(`Published: ${release.published_at || 'Not published'}`);
+      console.log(`\nDescription:\n${release.description}`);
+    } else if (response.status === 404) {
+      console.log('Release not found');
+    }
+    ```
+  </Tab>
+</Tabs>

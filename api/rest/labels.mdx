@@ -1,0 +1,141 @@
+---
+title: 'Labels API'
+description: 'Retrieve GitHub labels using the REST API'
+---
+
+## List Labels
+
+<ParamField query="GET" path="/api/v0/labels/">
+  Retrieve a paginated list of GitHub labels.
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="color" type="string" optional>
+  Filter labels by color hex code (without #).
+  
+  Example: `d93f0b`
+</ParamField>
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `nest_created_at` - Creation date (ascending)
+  - `-nest_created_at` - Creation date (descending)
+  - `nest_updated_at` - Last update date (ascending)
+  - `-nest_updated_at` - Last update date (descending)
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="items" type="array">
+  Array of label objects
+  
+  <Expandable title="Label Object">
+    <ResponseField name="color" type="string">
+      Color hex code of the label (without #)
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Label name
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="count" type="integer">
+  Total number of labels matching the filter
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List all labels
+    curl -X GET "https://nest.owasp.org/api/v0/labels/"
+    
+    # Filter by color
+    curl -X GET "https://nest.owasp.org/api/v0/labels/?color=d93f0b"
+    
+    # Sort by creation date (newest first)
+    curl -X GET "https://nest.owasp.org/api/v0/labels/?ordering=-nest_created_at"
+    
+    # Sort by update date (most recently updated first)
+    curl -X GET "https://nest.owasp.org/api/v0/labels/?ordering=-nest_updated_at"
+    
+    # Combine filter and pagination
+    curl -X GET "https://nest.owasp.org/api/v0/labels/?color=d93f0b&page=1&limit=20"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # List all labels
+    response = requests.get("https://nest.owasp.org/api/v0/labels/")
+    labels = response.json()
+    
+    # Filter by color
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/labels/",
+        params={"color": "d93f0b"}
+    )
+    
+    # Sort by creation date (newest first)
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/labels/",
+        params={"ordering": "-nest_created_at"}
+    )
+    
+    # Pagination
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/labels/",
+        params={
+            "page": 1,
+            "limit": 20
+        }
+    )
+    
+    # Print label names and colors
+    for label in labels['items']:
+        print(f"{label['name']} (#{label['color']})")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // List all labels
+    const response = await fetch('https://nest.owasp.org/api/v0/labels/');
+    const labels = await response.json();
+    
+    // Filter by color
+    const colorUrl = new URL('https://nest.owasp.org/api/v0/labels/');
+    colorUrl.searchParams.set('color', 'd93f0b');
+    const colorResponse = await fetch(colorUrl);
+    
+    // Sort by creation date (newest first)
+    const sortedUrl = new URL('https://nest.owasp.org/api/v0/labels/');
+    sortedUrl.searchParams.set('ordering', '-nest_created_at');
+    const sortedResponse = await fetch(sortedUrl);
+    
+    // Pagination
+    const paginatedUrl = new URL('https://nest.owasp.org/api/v0/labels/');
+    paginatedUrl.searchParams.set('page', '1');
+    paginatedUrl.searchParams.set('limit', '20');
+    const paginatedResponse = await fetch(paginatedUrl);
+    
+    // Print label names and colors
+    labels.items.forEach(label => {
+      console.log(`${label.name} (#${label.color})`);
+    });
+    ```
+  </Tab>
+</Tabs>

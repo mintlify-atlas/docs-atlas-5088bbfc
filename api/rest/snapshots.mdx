@@ -1,0 +1,629 @@
+---
+title: 'Snapshots API'
+description: 'Retrieve OWASP snapshots using the REST API'
+---
+
+## List Snapshots
+
+<ParamField query="GET" path="/api/v0/snapshots/">
+  Retrieve a paginated list of OWASP snapshots.
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `updated_at` - Last update date (ascending)
+  - `-updated_at` - Last update date (descending)
+  - `start_at` - Start date (ascending)
+  - `-start_at` - Start date (descending)
+  
+  Default: `-created_at`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="items" type="array">
+  Array of snapshot objects
+  
+  <Expandable title="Snapshot Object">
+    <ResponseField name="created_at" type="datetime">
+      ISO 8601 timestamp when the snapshot was created
+    </ResponseField>
+    
+    <ResponseField name="end_at" type="datetime">
+      ISO 8601 timestamp when the snapshot period ends
+    </ResponseField>
+    
+    <ResponseField name="key" type="string">
+      Unique snapshot identifier
+    </ResponseField>
+    
+    <ResponseField name="start_at" type="datetime">
+      ISO 8601 timestamp when the snapshot period starts
+    </ResponseField>
+    
+    <ResponseField name="title" type="string">
+      Snapshot title
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="datetime">
+      ISO 8601 timestamp when the snapshot was last updated
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="count" type="integer">
+  Total number of snapshots matching the filter
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List all snapshots
+    curl -X GET "https://nest.owasp.org/api/v0/snapshots/"
+    
+    # Sort by creation date (newest first)
+    curl -X GET "https://nest.owasp.org/api/v0/snapshots/?ordering=-created_at"
+    
+    # Sort by start date (most recent first)
+    curl -X GET "https://nest.owasp.org/api/v0/snapshots/?ordering=-start_at"
+    
+    # Pagination
+    curl -X GET "https://nest.owasp.org/api/v0/snapshots/?page=1&limit=20"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # List all snapshots
+    response = requests.get("https://nest.owasp.org/api/v0/snapshots/")
+    snapshots = response.json()
+    
+    # Sort by creation date (newest first)
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/snapshots/",
+        params={"ordering": "-created_at"}
+    )
+    
+    # Sort by start date (most recent first)
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/snapshots/",
+        params={"ordering": "-start_at"}
+    )
+    
+    # Pagination
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/snapshots/",
+        params={
+            "page": 1,
+            "limit": 20
+        }
+    )
+    
+    # Print snapshot titles
+    for snapshot in snapshots['items']:
+        print(f"{snapshot['title']} ({snapshot['key']})")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // List all snapshots
+    const response = await fetch('https://nest.owasp.org/api/v0/snapshots/');
+    const snapshots = await response.json();
+    
+    // Sort by creation date (newest first)
+    const createdUrl = new URL('https://nest.owasp.org/api/v0/snapshots/');
+    createdUrl.searchParams.set('ordering', '-created_at');
+    const createdResponse = await fetch(createdUrl);
+    
+    // Sort by start date (most recent first)
+    const startUrl = new URL('https://nest.owasp.org/api/v0/snapshots/');
+    startUrl.searchParams.set('ordering', '-start_at');
+    const startResponse = await fetch(startUrl);
+    
+    // Pagination
+    const paginatedUrl = new URL('https://nest.owasp.org/api/v0/snapshots/');
+    paginatedUrl.searchParams.set('page', '1');
+    paginatedUrl.searchParams.set('limit', '20');
+    const paginatedResponse = await fetch(paginatedUrl);
+    
+    // Print snapshot titles
+    snapshots.items.forEach(snapshot => {
+      console.log(`${snapshot.title} (${snapshot.key})`);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Snapshot
+
+<ParamField query="GET" path="/api/v0/snapshots/{snapshot_id}">
+  Retrieve detailed information about a specific OWASP snapshot.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="snapshot_id" type="string" required>
+  Snapshot identifier.
+  
+  Example: `2025-02`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="created_at" type="datetime">
+  ISO 8601 timestamp when the snapshot was created
+</ResponseField>
+
+<ResponseField name="end_at" type="datetime">
+  ISO 8601 timestamp when the snapshot period ends
+</ResponseField>
+
+<ResponseField name="key" type="string">
+  Unique snapshot identifier
+</ResponseField>
+
+<ResponseField name="start_at" type="datetime">
+  ISO 8601 timestamp when the snapshot period starts
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Snapshot title
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  ISO 8601 timestamp when the snapshot was last updated
+</ResponseField>
+
+<ResponseField name="new_chapters_count" type="integer">
+  Number of new chapters in this snapshot
+</ResponseField>
+
+<ResponseField name="new_issues_count" type="integer">
+  Number of new issues in this snapshot
+</ResponseField>
+
+<ResponseField name="new_projects_count" type="integer">
+  Number of new projects in this snapshot
+</ResponseField>
+
+<ResponseField name="new_releases_count" type="integer">
+  Number of new releases in this snapshot
+</ResponseField>
+
+<ResponseField name="new_users_count" type="integer">
+  Number of new users/members in this snapshot
+</ResponseField>
+
+### Error Responses
+
+<ResponseField name="404 Not Found" type="object">
+  <Expandable title="Error Schema">
+    <ResponseField name="message" type="string">
+      Error message: "Snapshot not found"
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get snapshot by key
+    curl -X GET "https://nest.owasp.org/api/v0/snapshots/2025-02"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # Get snapshot details
+    snapshot_id = "2025-02"
+    
+    response = requests.get(
+        f"https://nest.owasp.org/api/v0/snapshots/{snapshot_id}"
+    )
+    
+    if response.status_code == 200:
+        snapshot = response.json()
+        print(f"Title: {snapshot['title']}")
+        print(f"Period: {snapshot['start_at']} to {snapshot['end_at']}")
+        print(f"New Chapters: {snapshot['new_chapters_count']}")
+        print(f"New Projects: {snapshot['new_projects_count']}")
+        print(f"New Issues: {snapshot['new_issues_count']}")
+        print(f"New Releases: {snapshot['new_releases_count']}")
+        print(f"New Members: {snapshot['new_users_count']}")
+    elif response.status_code == 404:
+        print("Snapshot not found")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // Get snapshot details
+    const snapshotId = '2025-02';
+    
+    const response = await fetch(
+      `https://nest.owasp.org/api/v0/snapshots/${snapshotId}`
+    );
+    
+    if (response.ok) {
+      const snapshot = await response.json();
+      console.log(`Title: ${snapshot.title}`);
+      console.log(`Period: ${snapshot.start_at} to ${snapshot.end_at}`);
+      console.log(`New Chapters: ${snapshot.new_chapters_count}`);
+      console.log(`New Projects: ${snapshot.new_projects_count}`);
+      console.log(`New Issues: ${snapshot.new_issues_count}`);
+      console.log(`New Releases: ${snapshot.new_releases_count}`);
+      console.log(`New Members: ${snapshot.new_users_count}`);
+    } else if (response.status === 404) {
+      console.log('Snapshot not found');
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## List Snapshot Chapters
+
+<ParamField query="GET" path="/api/v0/snapshots/{snapshot_id}/chapters/">
+  Retrieve a paginated list of new chapters in a snapshot.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="snapshot_id" type="string" required>
+  Snapshot identifier.
+  
+  Example: `2025-02`
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `updated_at` - Last update date (ascending)
+  - `-updated_at` - Last update date (descending)
+  
+  Default: `-created_at`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List new chapters in snapshot
+    curl -X GET "https://nest.owasp.org/api/v0/snapshots/2025-02/chapters/"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    snapshot_id = "2025-02"
+    response = requests.get(
+        f"https://nest.owasp.org/api/v0/snapshots/{snapshot_id}/chapters/"
+    )
+    chapters = response.json()
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    const snapshotId = '2025-02';
+    const response = await fetch(
+      `https://nest.owasp.org/api/v0/snapshots/${snapshotId}/chapters/`
+    );
+    const chapters = await response.json();
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## List Snapshot Issues
+
+<ParamField query="GET" path="/api/v0/snapshots/{snapshot_id}/issues/">
+  Retrieve a paginated list of new issues in a snapshot.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="snapshot_id" type="string" required>
+  Snapshot identifier.
+  
+  Example: `2025-02`
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `updated_at` - Last update date (ascending)
+  - `-updated_at` - Last update date (descending)
+  
+  Default: `-created_at`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List new issues in snapshot
+    curl -X GET "https://nest.owasp.org/api/v0/snapshots/2025-02/issues/"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    snapshot_id = "2025-02"
+    response = requests.get(
+        f"https://nest.owasp.org/api/v0/snapshots/{snapshot_id}/issues/"
+    )
+    issues = response.json()
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    const snapshotId = '2025-02';
+    const response = await fetch(
+      `https://nest.owasp.org/api/v0/snapshots/${snapshotId}/issues/`
+    );
+    const issues = await response.json();
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## List Snapshot Members
+
+<ParamField query="GET" path="/api/v0/snapshots/{snapshot_id}/members/">
+  Retrieve a paginated list of new members in a snapshot.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="snapshot_id" type="string" required>
+  Snapshot identifier.
+  
+  Example: `2025-02`
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `updated_at` - Last update date (ascending)
+  - `-updated_at` - Last update date (descending)
+  
+  Default: `-created_at`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List new members in snapshot
+    curl -X GET "https://nest.owasp.org/api/v0/snapshots/2025-02/members/"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    snapshot_id = "2025-02"
+    response = requests.get(
+        f"https://nest.owasp.org/api/v0/snapshots/{snapshot_id}/members/"
+    )
+    members = response.json()
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    const snapshotId = '2025-02';
+    const response = await fetch(
+      `https://nest.owasp.org/api/v0/snapshots/${snapshotId}/members/`
+    );
+    const members = await response.json();
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## List Snapshot Projects
+
+<ParamField query="GET" path="/api/v0/snapshots/{snapshot_id}/projects/">
+  Retrieve a paginated list of new projects in a snapshot.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="snapshot_id" type="string" required>
+  Snapshot identifier.
+  
+  Example: `2025-02`
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `updated_at` - Last update date (ascending)
+  - `-updated_at` - Last update date (descending)
+  
+  Default: `-created_at`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List new projects in snapshot
+    curl -X GET "https://nest.owasp.org/api/v0/snapshots/2025-02/projects/"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    snapshot_id = "2025-02"
+    response = requests.get(
+        f"https://nest.owasp.org/api/v0/snapshots/{snapshot_id}/projects/"
+    )
+    projects = response.json()
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    const snapshotId = '2025-02';
+    const response = await fetch(
+      `https://nest.owasp.org/api/v0/snapshots/${snapshotId}/projects/`
+    );
+    const projects = await response.json();
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## List Snapshot Releases
+
+<ParamField query="GET" path="/api/v0/snapshots/{snapshot_id}/releases/">
+  Retrieve a paginated list of new releases in a snapshot.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="snapshot_id" type="string" required>
+  Snapshot identifier.
+  
+  Example: `2025-02`
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `published_at` - Publication date (ascending)
+  - `-published_at` - Publication date (descending)
+  
+  Default: `-published_at`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List new releases in snapshot
+    curl -X GET "https://nest.owasp.org/api/v0/snapshots/2025-02/releases/"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    snapshot_id = "2025-02"
+    response = requests.get(
+        f"https://nest.owasp.org/api/v0/snapshots/{snapshot_id}/releases/"
+    )
+    releases = response.json()
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    const snapshotId = '2025-02';
+    const response = await fetch(
+      `https://nest.owasp.org/api/v0/snapshots/${snapshotId}/releases/`
+    );
+    const releases = await response.json();
+    ```
+  </Tab>
+</Tabs>

@@ -91,8 +91,14 @@
               "api/rest/committees",
               "api/rest/events",
               "api/rest/issues",
+              "api/rest/labels",
+              "api/rest/members",
+              "api/rest/milestones",
+              "api/rest/organizations",
+              "api/rest/releases",
               "api/rest/repositories",
-              "api/rest/members"
+              "api/rest/snapshots",
+              "api/rest/sponsors"
             ]
           },
           {

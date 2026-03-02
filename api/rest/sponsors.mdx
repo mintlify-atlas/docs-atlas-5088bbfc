@@ -1,0 +1,298 @@
+---
+title: 'Sponsors API'
+description: 'Retrieve OWASP sponsors using the REST API'
+---
+
+## List Sponsors
+
+<ParamField query="GET" path="/api/v0/sponsors/">
+  Retrieve a paginated list of OWASP sponsors.
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="is_member" type="boolean" optional>
+  Filter sponsors by member status.
+  - `true` - Sponsors who are members
+  - `false` - Sponsors who are not members
+</ParamField>
+
+<ParamField query="member_type" type="string" optional>
+  Filter sponsors by member type. Available values depend on the SponsorModel.MemberType enum.
+</ParamField>
+
+<ParamField query="sponsor_type" type="string" optional>
+  Filter by the type of sponsorship (e.g., Gold, Silver, Platinum).
+  
+  Example: `Silver`
+</ParamField>
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `name` - Sponsor name (ascending)
+  - `-name` - Sponsor name (descending)
+  
+  Default: `name`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="items" type="array">
+  Array of sponsor objects
+  
+  <Expandable title="Sponsor Object">
+    <ResponseField name="image_url" type="string">
+      URL to the sponsor's logo/image
+    </ResponseField>
+    
+    <ResponseField name="key" type="string">
+      Unique sponsor identifier
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Sponsor name
+    </ResponseField>
+    
+    <ResponseField name="sponsor_type" type="string">
+      Type of sponsorship (e.g., Gold, Silver, Platinum)
+    </ResponseField>
+    
+    <ResponseField name="url" type="string">
+      URL to the sponsor's website
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="count" type="integer">
+  Total number of sponsors matching the filter
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List all sponsors
+    curl -X GET "https://nest.owasp.org/api/v0/sponsors/"
+    
+    # Filter by sponsor type
+    curl -X GET "https://nest.owasp.org/api/v0/sponsors/?sponsor_type=Silver"
+    
+    # Filter by member status
+    curl -X GET "https://nest.owasp.org/api/v0/sponsors/?is_member=true"
+    
+    # Sort by name (descending)
+    curl -X GET "https://nest.owasp.org/api/v0/sponsors/?ordering=-name"
+    
+    # Combine filters and pagination
+    curl -X GET "https://nest.owasp.org/api/v0/sponsors/?sponsor_type=Silver&page=1&limit=20"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # List all sponsors
+    response = requests.get("https://nest.owasp.org/api/v0/sponsors/")
+    sponsors = response.json()
+    
+    # Filter by sponsor type
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/sponsors/",
+        params={"sponsor_type": "Silver"}
+    )
+    
+    # Filter by member status
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/sponsors/",
+        params={"is_member": True}
+    )
+    
+    # Sort by name (descending)
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/sponsors/",
+        params={"ordering": "-name"}
+    )
+    
+    # Pagination
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/sponsors/",
+        params={
+            "page": 1,
+            "limit": 20
+        }
+    )
+    
+    # Print sponsor names
+    for sponsor in sponsors['items']:
+        print(f"{sponsor['name']} ({sponsor['sponsor_type']})")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // List all sponsors
+    const response = await fetch('https://nest.owasp.org/api/v0/sponsors/');
+    const sponsors = await response.json();
+    
+    // Filter by sponsor type
+    const typeUrl = new URL('https://nest.owasp.org/api/v0/sponsors/');
+    typeUrl.searchParams.set('sponsor_type', 'Silver');
+    const typeResponse = await fetch(typeUrl);
+    
+    // Filter by member status
+    const memberUrl = new URL('https://nest.owasp.org/api/v0/sponsors/');
+    memberUrl.searchParams.set('is_member', 'true');
+    const memberResponse = await fetch(memberUrl);
+    
+    // Sort by name (descending)
+    const sortedUrl = new URL('https://nest.owasp.org/api/v0/sponsors/');
+    sortedUrl.searchParams.set('ordering', '-name');
+    const sortedResponse = await fetch(sortedUrl);
+    
+    // Pagination
+    const paginatedUrl = new URL('https://nest.owasp.org/api/v0/sponsors/');
+    paginatedUrl.searchParams.set('page', '1');
+    paginatedUrl.searchParams.set('limit', '20');
+    const paginatedResponse = await fetch(paginatedUrl);
+    
+    // Print sponsor names
+    sponsors.items.forEach(sponsor => {
+      console.log(`${sponsor.name} (${sponsor.sponsor_type})`);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Sponsor
+
+<ParamField query="GET" path="/api/v0/sponsors/{sponsor_id}">
+  Retrieve detailed information about a specific OWASP sponsor.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="sponsor_id" type="string" required>
+  Sponsor identifier.
+  
+  Example: `adobe`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="image_url" type="string">
+  URL to the sponsor's logo/image
+</ResponseField>
+
+<ResponseField name="key" type="string">
+  Unique sponsor identifier
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Sponsor name
+</ResponseField>
+
+<ResponseField name="sponsor_type" type="string">
+  Type of sponsorship (e.g., Gold, Silver, Platinum)
+</ResponseField>
+
+<ResponseField name="url" type="string">
+  URL to the sponsor's website
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Sponsor description
+</ResponseField>
+
+<ResponseField name="is_member" type="boolean">
+  Whether the sponsor is an OWASP member
+</ResponseField>
+
+<ResponseField name="job_url" type="string">
+  URL to the sponsor's job/career page
+</ResponseField>
+
+<ResponseField name="member_type" type="string">
+  Member type if the sponsor is a member
+</ResponseField>
+
+### Error Responses
+
+<ResponseField name="404 Not Found" type="object">
+  <Expandable title="Error Schema">
+    <ResponseField name="message" type="string">
+      Error message: "Sponsor not found"
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get sponsor by key
+    curl -X GET "https://nest.owasp.org/api/v0/sponsors/adobe"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # Get sponsor details
+    sponsor_id = "adobe"
+    
+    response = requests.get(
+        f"https://nest.owasp.org/api/v0/sponsors/{sponsor_id}"
+    )
+    
+    if response.status_code == 200:
+        sponsor = response.json()
+        print(f"Name: {sponsor['name']}")
+        print(f"Type: {sponsor['sponsor_type']}")
+        print(f"Website: {sponsor['url']}")
+        print(f"Is Member: {sponsor['is_member']}")
+        print(f"Member Type: {sponsor['member_type']}")
+        print(f"Jobs: {sponsor['job_url']}")
+        print(f"\nDescription:\n{sponsor['description']}")
+    elif response.status_code == 404:
+        print("Sponsor not found")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // Get sponsor details
+    const sponsorId = 'adobe';
+    
+    const response = await fetch(
+      `https://nest.owasp.org/api/v0/sponsors/${sponsorId}`
+    );
+    
+    if (response.ok) {
+      const sponsor = await response.json();
+      console.log(`Name: ${sponsor.name}`);
+      console.log(`Type: ${sponsor.sponsor_type}`);
+      console.log(`Website: ${sponsor.url}`);
+      console.log(`Is Member: ${sponsor.is_member}`);
+      console.log(`Member Type: ${sponsor.member_type}`);
+      console.log(`Jobs: ${sponsor.job_url}`);
+      console.log(`\nDescription:\n${sponsor.description}`);
+    } else if (response.status === 404) {
+      console.log('Sponsor not found');
+    }
+    ```
+  </Tab>
+</Tabs>

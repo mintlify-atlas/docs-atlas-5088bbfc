@@ -1,0 +1,261 @@
+---
+title: 'Organizations API'
+description: 'Retrieve GitHub organizations using the REST API'
+---
+
+## List Organizations
+
+<ParamField query="GET" path="/api/v0/organizations/">
+  Retrieve a paginated list of GitHub organizations.
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="location" type="string" optional>
+  Filter organizations by location.
+  
+  Example: `United States of America`
+</ParamField>
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `updated_at` - Last update date (ascending)
+  - `-updated_at` - Last update date (descending)
+  
+  Default: `-created_at`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="items" type="array">
+  Array of organization objects
+  
+  <Expandable title="Organization Object">
+    <ResponseField name="created_at" type="datetime">
+      ISO 8601 timestamp when the organization was created
+    </ResponseField>
+    
+    <ResponseField name="login" type="string">
+      Organization login/username
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Organization display name
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="datetime">
+      ISO 8601 timestamp when the organization was last updated
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="count" type="integer">
+  Total number of organizations matching the filter
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List all organizations
+    curl -X GET "https://nest.owasp.org/api/v0/organizations/"
+    
+    # Filter by location
+    curl -X GET "https://nest.owasp.org/api/v0/organizations/?location=United%20States%20of%20America"
+    
+    # Sort by creation date (newest first)
+    curl -X GET "https://nest.owasp.org/api/v0/organizations/?ordering=-created_at"
+    
+    # Sort by update date (most recently updated first)
+    curl -X GET "https://nest.owasp.org/api/v0/organizations/?ordering=-updated_at"
+    
+    # Pagination
+    curl -X GET "https://nest.owasp.org/api/v0/organizations/?page=1&limit=20"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # List all organizations
+    response = requests.get("https://nest.owasp.org/api/v0/organizations/")
+    organizations = response.json()
+    
+    # Filter by location
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/organizations/",
+        params={"location": "United States of America"}
+    )
+    
+    # Sort by creation date (newest first)
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/organizations/",
+        params={"ordering": "-created_at"}
+    )
+    
+    # Pagination
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/organizations/",
+        params={
+            "page": 1,
+            "limit": 20
+        }
+    )
+    
+    # Print organization names
+    for org in organizations['items']:
+        print(f"{org['name']} (@{org['login']})")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // List all organizations
+    const response = await fetch('https://nest.owasp.org/api/v0/organizations/');
+    const organizations = await response.json();
+    
+    // Filter by location
+    const locationUrl = new URL('https://nest.owasp.org/api/v0/organizations/');
+    locationUrl.searchParams.set('location', 'United States of America');
+    const locationResponse = await fetch(locationUrl);
+    
+    // Sort by creation date (newest first)
+    const sortedUrl = new URL('https://nest.owasp.org/api/v0/organizations/');
+    sortedUrl.searchParams.set('ordering', '-created_at');
+    const sortedResponse = await fetch(sortedUrl);
+    
+    // Pagination
+    const paginatedUrl = new URL('https://nest.owasp.org/api/v0/organizations/');
+    paginatedUrl.searchParams.set('page', '1');
+    paginatedUrl.searchParams.set('limit', '20');
+    const paginatedResponse = await fetch(paginatedUrl);
+    
+    // Print organization names
+    organizations.items.forEach(org => {
+      console.log(`${org.name} (@${org.login})`);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Organization
+
+<ParamField query="GET" path="/api/v0/organizations/{organization_id}">
+  Retrieve detailed information about a specific GitHub organization.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="organization_id" type="string" required>
+  Organization login/username.
+  
+  Example: `OWASP`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="created_at" type="datetime">
+  ISO 8601 timestamp when the organization was created
+</ResponseField>
+
+<ResponseField name="login" type="string">
+  Organization login/username
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Organization display name
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  ISO 8601 timestamp when the organization was last updated
+</ResponseField>
+
+<ResponseField name="company" type="string">
+  Organization company name
+</ResponseField>
+
+<ResponseField name="location" type="string">
+  Organization location
+</ResponseField>
+
+### Error Responses
+
+<ResponseField name="404 Not Found" type="object">
+  <Expandable title="Error Schema">
+    <ResponseField name="message" type="string">
+      Error message: "Organization not found"
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get organization by login
+    curl -X GET "https://nest.owasp.org/api/v0/organizations/OWASP"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # Get organization details
+    organization_id = "OWASP"
+    
+    response = requests.get(
+        f"https://nest.owasp.org/api/v0/organizations/{organization_id}"
+    )
+    
+    if response.status_code == 200:
+        org = response.json()
+        print(f"Name: {org['name']}")
+        print(f"Login: {org['login']}")
+        print(f"Company: {org['company']}")
+        print(f"Location: {org['location']}")
+        print(f"Created: {org['created_at']}")
+        print(f"Updated: {org['updated_at']}")
+    elif response.status_code == 404:
+        print("Organization not found")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // Get organization details
+    const organizationId = 'OWASP';
+    
+    const response = await fetch(
+      `https://nest.owasp.org/api/v0/organizations/${organizationId}`
+    );
+    
+    if (response.ok) {
+      const org = await response.json();
+      console.log(`Name: ${org.name}`);
+      console.log(`Login: ${org.login}`);
+      console.log(`Company: ${org.company}`);
+      console.log(`Location: ${org.location}`);
+      console.log(`Created: ${org.created_at}`);
+      console.log(`Updated: ${org.updated_at}`);
+    } else if (response.status === 404) {
+      console.log('Organization not found');
+    }
+    ```
+  </Tab>
+</Tabs>
