@@ -1,0 +1,179 @@
+---
+title: "Welcome to OWASP Nest"
+description: "Your gateway to the OWASP community - discover projects, find contribution opportunities, and connect with the global security community"
+---
+
+<div className="hero-section">
+  <img
+    className="block dark:hidden"
+    src="/logo/light.svg"
+    alt="OWASP Nest Hero Light"
+  />
+  <img
+    className="hidden dark:block"
+    src="/logo/dark.svg"
+    alt="OWASP Nest Hero Dark"
+  />
+</div>
+
+## What is OWASP Nest?
+
+OWASP Nest is a comprehensive, community-first platform built to enhance collaboration and contribution across the OWASP community. The application serves as a central hub for exploring OWASP projects and ways to contribute to them, empowering contributors to find opportunities that align with their interests and expertise.
+
+<CardGroup cols={2}>
+  <Card title="Explore Projects" icon="folder" href="/quickstart">
+    Discover 100+ active OWASP projects across code, documentation, and tools
+  </Card>
+  <Card title="Find Contribution Opportunities" icon="code-pull-request" href="/quickstart">
+    Browse thousands of open issues ready for contributors
+  </Card>
+  <Card title="Connect with Chapters" icon="map-marker-alt" href="/quickstart">
+    Find local OWASP chapters in your area and join community events
+  </Card>
+  <Card title="Track Activity" icon="chart-line" href="/quickstart">
+    Monitor project health, releases, and community contributions
+  </Card>
+</CardGroup>
+
+## Key Features
+
+<AccordionGroup>
+  <Accordion icon="magnifying-glass" title="Advanced Search Capabilities">
+    Search across projects, chapters, organizations, and users with powerful Algolia-powered search. Filter by programming languages, topics, project types, and more to find exactly what you're looking for.
+  </Accordion>
+
+  <Accordion icon="slack" title="Slack Integration">
+    Seamless communication through [NestBot](https://owasp.slack.com/team/U07M1C4JASK) - a Slack bot that facilitates direct and channel messaging for updates, discussions, and project notifications.
+  </Accordion>
+
+  <Accordion icon="globe" title="OWASP Chapters Worldwide">
+    Interactive map showing OWASP chapters globally. Find nearby chapters, view local events, and connect with chapter leaders in your region.
+  </Accordion>
+
+  <Accordion icon="brain" title="AI-Generated Insights">
+    AI-powered summaries for projects, issues, and events help you quickly understand what matters and identify actionable next steps.
+  </Accordion>
+
+  <Accordion icon="chart-line" title="Project Health Metrics">
+    Comprehensive health scoring system tracking repository activity, community engagement, documentation quality, and compliance with OWASP standards.
+  </Accordion>
+</AccordionGroup>
+
+## Platform Statistics
+
+<CardGroup cols={3}>
+  <Card title="100+ Active Projects" icon="folder-open">
+    From flagship projects to incubator labs
+  </Card>
+  <Card title="1000+ Contributors" icon="users">
+    Global community building secure software
+  </Card>
+  <Card title="500+ Open Issues" icon="circle-exclamation">
+    Contribution opportunities waiting for you
+  </Card>
+</CardGroup>
+
+## Technology Stack
+
+OWASP Nest is built with modern, open-source technologies:
+
+<Tabs>
+  <Tab title="Frontend">
+    - **Framework**: Next.js 14 with React 18
+    - **Language**: TypeScript
+    - **Styling**: Tailwind CSS
+    - **Search**: Algolia Search
+    - **Data Fetching**: Apollo Client (GraphQL)
+  </Tab>
+  <Tab title="Backend">
+    - **Framework**: Django with Django REST Framework
+    - **Language**: Python 3.11+
+    - **Database**: PostgreSQL
+    - **API**: REST + GraphQL
+    - **Search Indexing**: Algolia
+    - **AI Integration**: OpenAI
+  </Tab>
+  <Tab title="Data Sources">
+    - **GitHub API**: Project repositories, issues, PRs, releases
+    - **OWASP Data**: Projects, chapters, events, committees
+    - **Real-time Sync**: Automated data synchronization
+  </Tab>
+</Tabs>
+
+## Core Data Models
+
+OWASP Nest aggregates and indexes several key entities:
+
+<Info>
+  All data is automatically synchronized from authoritative sources including GitHub and OWASP repositories.
+</Info>
+
+### Projects
+
+Projects are the heart of OWASP. Each project includes:
+
+- **Types**: Code, Documentation, Tool, Other
+- **Levels**: Flagship, Production, Lab, Incubator
+- **Metrics**: Stars, forks, contributors, commits, releases
+- **Languages & Topics**: Technology stack and focus areas
+- **Health Score**: Computed based on activity and compliance
+
+### Chapters
+
+Local OWASP chapters around the world:
+
+- Geographic location with coordinates
+- Chapter leaders and members
+- Local events and meetups
+- Regional information
+
+### Issues & Pull Requests
+
+Contribution opportunities across all OWASP projects:
+
+- Real-time sync from GitHub repositories
+- Labels, milestones, and assignees
+- AI-generated summaries for complex issues
+- Filtered by skill level and topic
+
+### Events
+
+Community gatherings and conferences:
+
+- **Categories**: Global, AppSec Days, Partner events
+- Start and end dates with locations
+- AI-suggested location data
+- Calendar integration
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+    Start exploring OWASP Nest in 5 minutes
+  </Card>
+  <Card title="Contribute to Projects" icon="code-branch" href="https://github.com/OWASP/Nest">
+    Help improve OWASP Nest itself
+  </Card>
+</CardGroup>
+
+## Community & Support
+
+<CardGroup cols={3}>
+  <Card title="OWASP Slack" icon="slack" href="https://owasp.slack.com/archives/project-nest">
+    Join #project-nest channel
+  </Card>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/OWASP/Nest">
+    View source code and contribute
+  </Card>
+  <Card title="Report Issues" icon="bug" href="https://github.com/OWASP/Nest/issues">
+    Help us improve the platform
+  </Card>
+</CardGroup>
+
+<Note>
+  **Project Leaders**: Arkadii Yakovets (CCSP, CISSP, CSSLP), Kate Golovanova (CC), and Starr Brown (CISSP)
+</Note>
+
+## License
+
+OWASP Nest is open source and licensed under the **MIT License**. We welcome contributions from the community!

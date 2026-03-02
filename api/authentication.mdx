@@ -1,0 +1,489 @@
+---
+title: API Authentication
+description: Authenticate API requests using API keys
+---
+
+OWASP Nest uses API keys to authenticate requests to both the REST and GraphQL APIs.
+
+## API Key Overview
+
+API keys provide secure, token-based authentication for programmatic access to OWASP Nest data.
+
+**Key characteristics:**
+- Each user can have up to 3 active API keys
+- Keys are generated with 32 bytes of cryptographic randomness
+- Keys are stored as SHA-256 hashes for security
+- Keys have configurable expiration dates
+- Keys can be revoked at any time
+
+Source: `backend/apps/api/models/api_key.py:12-14`
+
+## Creating API Keys
+
+API keys must be created through the GraphQL API using an authenticated session.
+
+<Warning>
+  You must be logged in to the OWASP Nest web application to create API keys. API keys cannot be created using other API keys.
+</Warning>
+
+### GraphQL Mutation
+
+```graphql
+mutation {
+  createApiKey(
+    name: "Production Integration"
+    expiresAt: "2026-12-31T23:59:59Z"
+  ) {
+    ok
+    code
+    message
+    rawKey
+    apiKey {
+      uuid
+      name
+      createdAt
+      expiresAt
+      isRevoked
+    }
+  }
+}
+```
+
+**Response on success:**
+```json
+{
+  "data": {
+    "createApiKey": {
+      "ok": true,
+      "code": "SUCCESS",
+      "message": "API key created successfully.",
+      "rawKey": "abc123def456...",
+      "apiKey": {
+        "uuid": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Production Integration",
+        "createdAt": "2026-03-02T10:30:00Z",
+        "expiresAt": "2026-12-31T23:59:59Z",
+        "isRevoked": false
+      }
+    }
+  }
+}
+```
+
+<Warning>
+  **Save the `rawKey` immediately!** It is only shown once and cannot be retrieved later. If you lose it, you must create a new API key.
+</Warning>
+
+Source: `backend/apps/api/internal/mutations/api_key.py:44-78`
+
+### Validation Rules
+
+API key creation enforces the following rules:
+
+**Name validation:**
+- Name is required and cannot be empty
+- Maximum length: 100 characters
+- Returns `INVALID_NAME` error if validation fails
+
+**Expiration validation:**
+- Expiration date must be in the future
+- Returns `INVALID_DATE` error if date is in the past
+
+**Key limit:**
+- Maximum 3 active (non-revoked, non-expired) keys per user
+- Returns `LIMIT_REACHED` error if limit exceeded
+
+Source: `backend/apps/api/internal/mutations/api_key.py:46-69`, `backend/apps/api/models/api_key.py:14`
+
+## Using API Keys
+
+API keys authenticate requests by including them in the request headers.
+
+<Tabs>
+  <Tab title="REST API">
+    Include the API key in the `X-API-Key` header:
+    
+    ```bash
+    curl -H "X-API-Key: your_api_key_here" \
+      https://owasp.org/api/v0/projects/
+    ```
+    
+    **With filters and pagination:**
+    ```bash
+    curl -H "X-API-Key: your_api_key_here" \
+      "https://owasp.org/api/v0/projects/?level=flagship&page=1&page_size=10"
+    ```
+    
+    **Example response:**
+    ```json
+    {
+      "current_page": 1,
+      "total_pages": 3,
+      "total_count": 25,
+      "has_next": true,
+      "has_previous": false,
+      "items": [
+        {
+          "key": "www-project-zap",
+          "name": "OWASP Zed Attack Proxy",
+          "level": "flagship",
+          "created_at": "2020-01-15T10:00:00Z",
+          "updated_at": "2026-03-01T15:30:00Z"
+        }
+      ]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="GraphQL API">
+    Include the API key in the `X-API-Key` header:
+    
+    ```bash
+    curl -H "X-API-Key: your_api_key_here" \
+      -H "Content-Type: application/json" \
+      -d '{"query": "{ activeApiKeyCount }"}' \
+      https://owasp.org/graphql/
+    ```
+    
+    **JavaScript example:**
+    ```javascript
+    const response = await fetch('https://owasp.org/graphql/', {
+      method: 'POST',
+      headers: {
+        'X-API-Key': 'your_api_key_here',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: `
+          query {
+            activeApiKeyCount
+          }
+        `
+      })
+    });
+    
+    const data = await response.json();
+    ```
+    
+    **Python example:**
+    ```python
+    import requests
+    
+    headers = {
+        'X-API-Key': 'your_api_key_here',
+        'Content-Type': 'application/json',
+    }
+    
+    query = '''
+    query {
+      activeApiKeyCount
+    }
+    '''
+    
+    response = requests.post(
+        'https://owasp.org/graphql/',
+        headers=headers,
+        json={'query': query}
+    )
+    ```
+  </Tab>
+</Tabs>
+
+Source: `backend/apps/api/rest/auth/api_key.py:14`
+
+## Authentication Flow
+
+When a request includes an API key, the following authentication process occurs:
+
+1. **Header extraction:** API key is extracted from the `X-API-Key` header
+2. **Key hashing:** Raw key is hashed using SHA-256
+3. **Database lookup:** Hash is used to find the corresponding API key record
+4. **Validation:** Key is checked for:
+   - Existence in database
+   - Not revoked (`is_revoked = false`)
+   - Not expired (`expires_at > now()`)
+5. **Last used update:** On successful authentication, `last_used_at` is updated
+6. **Request proceeds:** User context is attached to the request
+
+Source: `backend/apps/api/models/api_key.py:77-88`, `backend/apps/api/rest/auth/api_key.py:16-35`
+
+## Authentication Errors
+
+### Missing or Invalid API Key
+
+If the API key is missing or invalid, you'll receive a `401 Unauthorized` response:
+
+```json
+{
+  "detail": "Missing or invalid API key in 'X-API-Key' header"
+}
+```
+
+**Common causes:**
+- No `X-API-Key` header provided
+- Invalid or non-existent key
+- Key has been revoked
+- Key has expired
+
+Source: `backend/apps/api/rest/auth/api_key.py:27-35`
+
+### Rate Limit Exceeded
+
+When you exceed the rate limit (10 requests/second), you'll receive a `429 Too Many Requests` response.
+
+Source: `backend/apps/api/rest/v0/__init__.py:46`
+
+## Managing API Keys
+
+### Listing Your API Keys
+
+Query your active API keys using GraphQL:
+
+```graphql
+query {
+  apiKeys {
+    uuid
+    name
+    createdAt
+    expiresAt
+    isRevoked
+  }
+  activeApiKeyCount
+}
+```
+
+**Response:**
+```json
+{
+  "data": {
+    "apiKeys": [
+      {
+        "uuid": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Production Integration",
+        "createdAt": "2026-03-02T10:30:00Z",
+        "expiresAt": "2026-12-31T23:59:59Z",
+        "isRevoked": false
+      },
+      {
+        "uuid": "660e8400-e29b-41d4-a716-446655440001",
+        "name": "Development Testing",
+        "createdAt": "2026-01-15T08:00:00Z",
+        "expiresAt": "2026-06-30T23:59:59Z",
+        "isRevoked": false
+      }
+    ],
+    "activeApiKeyCount": 2
+  }
+}
+```
+
+<Note>
+  Only non-revoked, non-expired keys are returned by the `apiKeys` query and counted in `activeApiKeyCount`.
+</Note>
+
+Source: `backend/apps/api/internal/queries/api_key.py:14-30`, `backend/apps/api/internal/nodes/api_key.py:9-21`
+
+### Revoking API Keys
+
+Revoke an API key using its UUID:
+
+```graphql
+mutation {
+  revokeApiKey(uuid: "550e8400-e29b-41d4-a716-446655440000") {
+    ok
+    code
+    message
+  }
+}
+```
+
+**Response on success:**
+```json
+{
+  "data": {
+    "revokeApiKey": {
+      "ok": true,
+      "code": "SUCCESS",
+      "message": "API key revoked successfully."
+    }
+  }
+}
+```
+
+**Response on error:**
+```json
+{
+  "data": {
+    "revokeApiKey": {
+      "ok": false,
+      "code": "NOT_FOUND",
+      "message": "API key not found."
+    }
+  }
+}
+```
+
+<Warning>
+  Revoked keys cannot be restored. You must create a new API key if you revoke one by mistake.
+</Warning>
+
+Source: `backend/apps/api/internal/mutations/api_key.py:91-110`
+
+## Security Best Practices
+
+### Key Storage
+
+- **Never commit API keys to source control**
+- Store keys in environment variables or secret management systems
+- Use different keys for different environments (development, staging, production)
+
+**Environment variable example:**
+```bash
+# .env file (add to .gitignore!)
+OWASP_API_KEY=your_api_key_here
+```
+
+```python
+import os
+import requests
+
+api_key = os.getenv('OWASP_API_KEY')
+headers = {'X-API-Key': api_key}
+```
+
+### Key Rotation
+
+- Set reasonable expiration dates (e.g., 6-12 months)
+- Rotate keys before they expire
+- Revoke old keys after rotating
+- Monitor `last_used_at` to identify unused keys
+
+### Key Limits
+
+<Note>
+  The 3-key limit encourages:
+  - **Production key** - For production integrations
+  - **Staging key** - For testing environments  
+  - **Development key** - For local development
+</Note>
+
+Source: `backend/apps/api/models/api_key.py:13`
+
+### Monitoring
+
+Track API key usage through the `last_used_at` field:
+
+```graphql
+query {
+  apiKeys {
+    name
+    lastUsedAt
+    createdAt
+  }
+}
+```
+
+Revoke keys that haven't been used recently or are no longer needed.
+
+## Implementation Details
+
+### Key Generation
+
+API keys are generated using Python's `secrets` module for cryptographic security:
+
+```python
+import secrets
+
+# Generate URL-safe random key (32 bytes)
+raw_key = secrets.token_urlsafe(32)
+```
+
+Source: `backend/apps/api/models/api_key.py:96-98`
+
+### Key Hashing
+
+Raw keys are hashed using SHA-256 before storage:
+
+```python
+import hashlib
+
+# Hash the raw key for storage
+key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+```
+
+Source: `backend/apps/api/models/api_key.py:91-93`
+
+<Note>
+  Only the hash is stored in the database. Raw keys are never persisted, making stolen database dumps useless without the original keys.
+</Note>
+
+### Key Validation
+
+API keys are validated on each request:
+
+```python
+@property
+def is_valid(self):
+    """Check if the API key is valid."""
+    return not self.is_revoked and not self.is_expired
+
+@property
+def is_expired(self):
+    """Check if the API key has expired."""
+    return self.expires_at < timezone.now()
+```
+
+Source: `backend/apps/api/models/api_key.py:48-55`
+
+## Troubleshooting
+
+### Key Creation Fails
+
+**Error:** `LIMIT_REACHED`
+- **Cause:** You already have 3 active API keys
+- **Solution:** Revoke unused keys before creating new ones
+
+**Error:** `INVALID_DATE`
+- **Cause:** Expiration date is in the past
+- **Solution:** Use a future date for `expiresAt`
+
+**Error:** `INVALID_NAME`
+- **Cause:** Name is empty or exceeds 100 characters
+- **Solution:** Provide a valid name (1-100 characters)
+
+### Authentication Fails
+
+**Error:** `401 Unauthorized`
+- **Cause:** Missing, invalid, revoked, or expired key
+- **Solutions:**
+  - Verify the `X-API-Key` header is included
+  - Check the key hasn't been revoked
+  - Verify the key hasn't expired
+  - Ensure the full raw key is used (not truncated)
+
+### Rate Limit Issues
+
+**Error:** `429 Too Many Requests`
+- **Cause:** Exceeded 10 requests per second
+- **Solutions:**
+  - Implement request throttling in your client
+  - Use exponential backoff for retries
+  - Cache responses when possible
+  - Consider batching requests using GraphQL
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Overview" icon="book" href="/api/overview">
+    Learn about REST and GraphQL APIs
+  </Card>
+  <Card title="REST Endpoints" icon="code" href="/api/rest/projects">
+    Explore available REST endpoints
+  </Card>
+  <Card title="GraphQL Schema" icon="diagram-project" href="/api/graphql/overview">
+    Browse GraphQL queries and mutations
+  </Card>
+  <Card title="Rate Limits" icon="gauge" href="/api/rate-limits">
+    Understand rate limiting policies
+  </Card>
+</CardGroup>

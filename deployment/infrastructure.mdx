@@ -1,0 +1,580 @@
+---
+title: Infrastructure Setup
+description: Deploy OWASP Nest infrastructure on AWS using Terraform
+icon: cloud
+---
+
+## Overview
+
+OWASP Nest infrastructure is provisioned on AWS using Terraform modules. The setup includes VPC networking, ECS clusters, RDS PostgreSQL, ElastiCache Redis, Application Load Balancers, Lambda functions via Zappa, and S3 storage.
+
+## Prerequisites
+
+- **AWS Account**: With appropriate permissions
+- **Terraform**: [Install Terraform](https://developer.hashicorp.com/terraform/install)
+- **AWS CLI**: [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+- **Docker**: For building and pushing images to ECR
+- **Python Poetry**: For Zappa deployment
+- **Project Setup**: Complete [CONTRIBUTING.md](https://github.com/OWASP/Nest/blob/main/CONTRIBUTING.md)
+
+## Terraform Modules
+
+The infrastructure is organized into modular components:
+
+### Core Modules
+
+- **`alb`**: Application Load Balancer for frontend and backend
+- **`cache`**: ElastiCache Redis for session and task queue
+- **`database`**: RDS PostgreSQL 16 with pgvector extension
+- **`ecs`**: Elastic Container Service for frontend and worker tasks
+- **`frontend`**: CloudFront and S3 for static assets
+- **`kms`**: KMS keys for encryption at rest
+- **`networking`**: VPC, subnets, NAT gateways, and endpoints
+- **`parameters`**: AWS Systems Manager Parameter Store for secrets
+- **`security`**: Security groups and IAM roles
+- **`storage`**: S3 buckets for fixtures, logs, and backups
+
+### Submodules
+
+- **`ecs/task`**: ECS task definitions for migrate, load-data, index-data
+- **`networking/nacl`**: Network ACLs for subnet-level security
+- **`networking/vpc-endpoint`**: VPC endpoints for AWS services
+- **`storage/s3-bucket`**: Reusable S3 bucket configuration
+
+## Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         AWS Cloud                                │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │                    VPC (networking)                       │  │
+│  │                                                           │  │
+│  │  ┌─────────────┐        ┌─────────────┐                 │  │
+│  │  │ Public      │        │ Private     │                 │  │
+│  │  │ Subnets     │        │ Subnets     │                 │  │
+│  │  │             │        │             │                 │  │
+│  │  │  ┌────────┐ │        │ ┌─────────┐│                 │  │
+│  │  │  │  ALB   │─┼────────┼▶│   ECS   ││  Frontend       │  │
+│  │  │  │ (alb)  │ │        │ │ (ecs)   ││  Tasks          │  │
+│  │  │  └────────┘ │        │ └─────────┘│                 │  │
+│  │  │             │        │             │                 │  │
+│  │  │             │        │ ┌─────────┐│                 │  │
+│  │  │             │        │ │ Lambda  ││  Backend        │  │
+│  │  │             │        │ │ (Zappa) ││  (Django)       │  │
+│  │  │             │        │ └─────────┘│                 │  │
+│  │  │             │        │             │                 │  │
+│  │  │             │        │ ┌─────────┐│                 │  │
+│  │  │             │        │ │   RDS   ││  PostgreSQL 16  │  │
+│  │  │             │        │ │(database││  + pgvector     │  │
+│  │  │             │        │ └─────────┘│                 │  │
+│  │  │             │        │             │                 │  │
+│  │  │             │        │ ┌─────────┐│                 │  │
+│  │  │             │        │ │ElastiCache│                │  │
+│  │  │             │        │ │ (cache) ││  Redis          │  │
+│  │  │             │        │ └─────────┘│                 │  │
+│  │  └─────────────┘        └─────────────┘                 │  │
+│  │                                                           │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │ CloudFront   │  │     ECR      │  │      S3      │         │
+│  │ (frontend)   │  │  (images)    │  │  (storage)   │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+│                                                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │     KMS      │  │   Secrets    │  │   Security   │         │
+│  │(encryption)  │  │ (parameters) │  │  (security)  │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Setup Instructions
+
+<Warning>
+All `cd` commands are relative to the project root directory.
+</Warning>
+
+### Step 1: Setup Terraform State (One-Time)
+
+Create S3 backend for Terraform state management.
+
+#### Create IAM User
+
+Create `nest-state` IAM user with policies defined in `infrastructure/state/README.md`.
+
+#### Initialize State Backend
+
+```bash
+cd infrastructure/state/
+
+# Optional: Change region in .tfvars file
+# aws_region = "us-east-1"
+
+terraform init
+terraform apply
+```
+
+**Copy the state bucket names from output** - you'll need them in subsequent steps.
+
+<Warning>
+Do not destroy state resources unless absolutely necessary. They store your infrastructure state.
+</Warning>
+
+### Step 2: Bootstrap IAM Role
+
+Create the IAM role that Terraform will assume for infrastructure deployment.
+
+#### Create IAM User
+
+Create `nest-bootstrap` IAM user with policies from `infrastructure/bootstrap/README.md`.
+
+#### Configure Bootstrap
+
+```bash
+cd infrastructure/bootstrap/
+
+# Create terraform variables file
+cp terraform.tfvars.example terraform.tfvars
+```
+
+Edit `terraform.tfvars`:
+
+```hcl
+# Generate a random external ID (required for role assumption)
+aws_role_external_id = "your-random-external-id-here"
+```
+
+<Warning>
+Save the `aws_role_external_id` securely - you'll need it for staging setup.
+</Warning>
+
+#### Configure Backend
+
+```bash
+cp terraform.tfbackend.example terraform.tfbackend
+```
+
+Edit `terraform.tfbackend` with the bootstrap bucket name from Step 1:
+
+```hcl
+bucket = "nest-state-bootstrap-XXXXX"
+key    = "terraform.tfstate"
+region = "us-east-1"
+```
+
+#### Apply Bootstrap
+
+```bash
+terraform init -backend-config=terraform.tfbackend
+terraform apply
+```
+
+This creates the `nest-staging-terraform` IAM role.
+
+### Step 3: Setup Staging Infrastructure
+
+#### Create IAM User
+
+Create `nest-staging` IAM user with policies from `infrastructure/staging/README.md`.
+
+This user must **assume the `nest-staging-terraform` role** created in Step 2.
+
+#### Configure AWS Credentials
+
+Add to `~/.aws/credentials`:
+
+```ini
+[nest-staging-identity]
+aws_access_key_id = YOUR_ACCESS_KEY_ID
+aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
+```
+
+Add to `~/.aws/config`:
+
+```ini
+[profile nest-staging]
+external_id = YOUR_EXTERNAL_ID_FROM_STEP_2
+role_arn = arn:aws:iam::AWS_ACCOUNT_ID:role/nest-staging-terraform
+source_profile = nest-staging-identity
+region = us-east-1
+```
+
+#### Configure Staging
+
+```bash
+cd infrastructure/staging/
+
+cp terraform.tfvars.example terraform.tfvars
+cp terraform.tfbackend.example terraform.tfbackend
+```
+
+Edit `terraform.tfbackend` with staging state bucket:
+
+```hcl
+bucket = "nest-state-staging-XXXXX"
+key    = "terraform.tfstate"
+region = "us-east-1"
+```
+
+Edit `terraform.tfvars` with your configuration:
+
+```hcl
+aws_region = "us-east-1"
+environment = "staging"
+domain_name = "staging.nest.owasp.org"
+
+# Database
+db_instance_class = "db.t3.medium"
+db_allocated_storage = 100
+
+# Cache
+cache_node_type = "cache.t3.medium"
+
+# ECS
+frontend_task_cpu = "512"
+frontend_task_memory = "1024"
+```
+
+#### Apply Infrastructure
+
+```bash
+terraform init -backend-config=terraform.tfbackend
+terraform apply
+```
+
+This provisions:
+- VPC with public/private subnets
+- RDS PostgreSQL database
+- ElastiCache Redis cluster
+- ECS clusters and task definitions
+- Application Load Balancers
+- S3 buckets
+- KMS keys
+- Security groups and IAM roles
+
+### Step 4: Populate Secrets
+
+Navigate to **AWS Console → Systems Manager → Parameter Store**.
+
+Populate all parameters with `to-be-set-in-aws-console` value:
+
+- `DJANGO_SECRET_KEY`
+- `DJANGO_ALGOLIA_APPLICATION_ID`
+- `DJANGO_ALGOLIA_WRITE_API_KEY`
+- `DJANGO_OPEN_AI_SECRET_KEY`
+- `DJANGO_SLACK_BOT_TOKEN`
+- `DJANGO_SLACK_SIGNING_SECRET`
+- `DJANGO_SENTRY_DSN`
+- `GITHUB_TOKEN`
+- `NEXTAUTH_SECRET`
+- `NEXT_SERVER_GITHUB_CLIENT_ID`
+- `NEXT_SERVER_GITHUB_CLIENT_SECRET`
+
+See [Environment Variables](/deployment/environment-variables) for descriptions.
+
+## Deploy Backend with Zappa
+
+The Django backend runs on AWS Lambda via Zappa.
+
+### 1. Install Dependencies
+
+```bash
+cd backend/
+poetry sync --without test --without video
+eval $(poetry env activate)
+```
+
+### 2. Configure Zappa
+
+```bash
+cp zappa_settings.template.json zappa_settings.json
+```
+
+Edit `zappa_settings.json` and replace all `${...}` variables with Terraform outputs:
+
+```bash
+cd ../infrastructure/staging/
+terraform output
+```
+
+Example replacements:
+- `${vpc_id}` → from `vpc_id` output
+- `${private_subnet_ids}` → from `private_subnet_ids` output
+- `${lambda_security_group_id}` → from `lambda_security_group_id` output
+- `${lambda_role_arn}` → from `lambda_role_arn` output
+
+### 3. Deploy Lambda
+
+<Warning>
+Ensure all secrets in Parameter Store are populated before deploying. Invalid secrets (like `DJANGO_SLACK_BOT_TOKEN`) may cause silent failures.
+</Warning>
+
+```bash
+cd ../../backend/
+zappa deploy staging
+```
+
+If deployment succeeds but returns `5xx` errors:
+
+```bash
+zappa undeploy staging
+zappa deploy staging
+```
+
+<Warning>
+`zappa update staging` may not work for initial deployments. Use `undeploy` + `deploy`.
+</Warning>
+
+### 4. Configure ALB Routing
+
+Get Lambda details:
+
+```bash
+zappa status staging
+```
+
+Update `infrastructure/staging/terraform.tfvars`:
+
+```hcl
+lambda_function_name = "nest-staging"
+```
+
+Apply changes:
+
+```bash
+cd ../infrastructure/staging/
+terraform apply
+```
+
+## Populate ECR Repositories
+
+Build and push Docker images to Elastic Container Registry.
+
+### 1. Login to ECR
+
+```bash
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin \
+  AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
+```
+
+<Warning>
+Configure a credential helper instead of using the above command for production.
+</Warning>
+
+### 2. Build and Push Backend Image
+
+```bash
+# Build
+docker build -t nest-staging-backend:latest \
+  -f docker/backend/Dockerfile backend/
+
+# Tag
+docker tag nest-staging-backend:latest \
+  AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/nest-staging-backend:latest
+
+# Push
+docker push AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/nest-staging-backend:latest
+```
+
+### 3. Build and Push Frontend Image
+
+<Warning>
+Update frontend `.env` file with correct `NEXT_PUBLIC_*` variables before building. These are injected at build time.
+</Warning>
+
+```bash
+# Build
+docker build -t nest-staging-frontend:latest \
+  -f docker/frontend/Dockerfile frontend/
+
+# Tag
+docker tag nest-staging-frontend:latest \
+  AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/nest-staging-frontend:latest
+
+# Push
+docker push AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/nest-staging-frontend:latest
+```
+
+## Setup Database
+
+### 1. Upload Fixture to S3
+
+Get the fixtures bucket name from Terraform output:
+
+```bash
+terraform output s3_fixtures_bucket_name
+```
+
+Upload database dump:
+
+```bash
+aws s3 cp backend/data/nest.dump s3://nest-fixtures-RANDOM_ID/
+```
+
+### 2. Run ECS Tasks
+
+Navigate to **AWS Console → ECS → Task Definitions**.
+
+Run tasks in this order:
+
+#### a. Run Migrations
+
+1. Select `nest-staging-migrate` task definition
+2. Deploy → Run Task
+3. Configuration:
+   - **Cluster**: `nest-staging-tasks-cluster`
+   - **VPC**: `nest-staging-vpc`
+   - **Security Group**: `nest-staging-ecs-sg`
+4. Create and monitor logs
+
+#### b. Load Data
+
+1. Select `nest-staging-load-data` task definition
+2. Deploy → Run Task
+3. Use same cluster, VPC, and security group
+4. Monitor completion
+
+#### c. Index Data
+
+1. Select `nest-staging-index-data` task definition
+2. Deploy → Run Task
+3. Use same configuration
+4. Verify Algolia indices are populated
+
+## Configure Domain and Frontend
+
+### 1. Validate ACM Certificate
+
+Get DNS validation records:
+
+```bash
+terraform output acm_certificate_domain_validation_options
+```
+
+Add CNAME records to your DNS provider:
+
+```
+Name: _abc123.staging.nest.owasp.org
+Type: CNAME
+Value: _xyz789.acm-validations.aws.
+```
+
+Wait for validation (may take several minutes):
+
+```bash
+terraform apply
+```
+
+Check certificate status in output.
+
+### 2. Point Domain to ALB
+
+Get ALB DNS name:
+
+```bash
+terraform output alb_dns_name
+```
+
+Add CNAME record:
+
+```
+Name: staging.nest.owasp.org
+Type: CNAME
+Value: nest-staging-alb-123456789.us-east-1.elb.amazonaws.com
+```
+
+### 3. Update Frontend Parameters
+
+Get Lambda URL:
+
+```bash
+terraform output lambda_function_url
+```
+
+Navigate to **AWS Console → Systems Manager → Parameter Store**.
+
+Update parameters:
+- `NEXT_SERVER_GRAPHQL_URL` → Lambda URL + `/graphql/`
+- `NEXT_SERVER_CSRF_URL` → Lambda URL + `/csrf/`
+
+### 4. Restart Frontend ECS Service
+
+```bash
+aws ecs update-service \
+  --cluster nest-staging-frontend-cluster \
+  --service nest-staging-frontend-service \
+  --force-new-deployment \
+  --region us-east-1
+```
+
+## Monitoring and Maintenance
+
+### View Lambda Logs
+
+```bash
+zappa tail staging
+```
+
+### Update Lambda
+
+```bash
+zappa update staging
+```
+
+### View ECS Logs
+
+Navigate to **AWS Console → ECS → Clusters → Tasks → Logs**.
+
+### Database Backups
+
+RDS automated backups are enabled by default. Manual snapshot:
+
+**AWS Console → RDS → Databases → nest-staging-db → Actions → Take Snapshot**
+
+## Cleaning Up
+
+<Warning>
+Before destroying infrastructure:
+1. Empty all S3 buckets
+2. Delete all ECR images
+3. Remove Lambda function: `zappa undeploy staging`
+4. Set `prevent_destroy = false` in Terraform for protected resources
+</Warning>
+
+```bash
+# Undeploy Lambda
+zappa undeploy staging
+
+# Destroy infrastructure
+cd infrastructure/staging/
+terraform destroy
+```
+
+## Cost Optimization
+
+- **RDS**: Use `db.t3.medium` for staging, scale up for production
+- **ElastiCache**: Use `cache.t3.medium` or smaller for development
+- **Lambda**: Pay per request, no idle costs
+- **ECS**: Use Fargate Spot for non-critical tasks
+- **S3**: Enable lifecycle policies for log rotation
+- **NAT Gateway**: Expensive - consider VPC endpoints for AWS services
+
+## Security Best Practices
+
+1. **Use Parameter Store** for all secrets (encrypted with KMS)
+2. **Enable VPC Flow Logs** for network monitoring
+3. **Restrict Security Groups** to minimum required ports
+4. **Enable RDS encryption** at rest (KMS)
+5. **Enable S3 versioning** for critical buckets
+6. **Use IAM roles** instead of access keys where possible
+7. **Enable CloudTrail** for audit logging
+8. **Rotate secrets regularly** in Parameter Store
+
+## Next Steps
+
+- [Environment Variables Reference](/deployment/environment-variables)
+- [Docker Deployment Guide](/deployment/docker)
+

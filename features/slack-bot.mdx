@@ -1,0 +1,512 @@
+---
+title: NestBot Slack Integration
+description: Interact with OWASP Nest directly from Slack with slash commands and AI-powered assistance
+---
+
+## Overview
+
+NestBot brings OWASP Nest capabilities directly into your Slack workspace. Query projects, chapters, events, and get AI-powered answers about OWASP without leaving Slack.
+
+## Available Commands
+
+NestBot supports the following slash commands:
+
+<CardGroup cols={2}>
+  <Card title="/owasp" icon="slash">
+    Gateway command to access all other commands
+  </Card>
+  <Card title="/ai" icon="brain">
+    Ask questions about OWASP (AI-powered)
+  </Card>
+  <Card title="/projects" icon="folder">
+    Search and browse OWASP projects
+  </Card>
+  <Card title="/chapters" icon="users">
+    Find OWASP chapters worldwide
+  </Card>
+  <Card title="/events" icon="calendar">
+    View upcoming OWASP events
+  </Card>
+  <Card title="/committees" icon="people-group">
+    Explore OWASP committees
+  </Card>
+  <Card title="/community" icon="comments">
+    Access community resources
+  </Card>
+  <Card title="/leaders" icon="user-tie">
+    Find project and chapter leaders
+  </Card>
+  <Card title="/board" icon="briefcase">
+    View Board of Directors information
+  </Card>
+  <Card title="/staff" icon="id-card">
+    Contact OWASP staff members
+  </Card>
+  <Card title="/sponsors" icon="handshake">
+    View OWASP sponsors
+  </Card>
+  <Card title="/contribute" icon="code-pull-request">
+    Learn how to contribute to OWASP
+  </Card>
+  <Card title="/donate" icon="hand-holding-dollar">
+    Support OWASP with donations
+  </Card>
+  <Card title="/jobs" icon="briefcase">
+    Browse security job opportunities
+  </Card>
+  <Card title="/gsoc" icon="graduation-cap">
+    Google Summer of Code information
+  </Card>
+  <Card title="/news" icon="newspaper">
+    Latest OWASP news and updates
+  </Card>
+  <Card title="/policies" icon="file-contract">
+    View OWASP policies and guidelines
+  </Card>
+  <Card title="/contact" icon="envelope">
+    Get OWASP contact information
+  </Card>
+</CardGroup>
+
+## Command Implementation
+
+All commands are implemented in:
+
+```
+backend/apps/slack/commands/
+```
+
+### Command Structure
+
+```python
+# backend/apps/slack/commands/__init__.py
+from . import (
+    ai,
+    board,
+    chapters,
+    committees,
+    community,
+    contact,
+    contribute,
+    donate,
+    events,
+    gsoc,
+    jobs,
+    leaders,
+    news,
+    owasp,
+    policies,
+    projects,
+    sponsor,
+    sponsors,
+    staff,
+    users,
+)
+```
+
+## Core Commands
+
+### /owasp - Gateway Command
+
+The `/owasp` command serves as a router to other commands:
+
+```bash
+/owasp projects security
+# Equivalent to: /projects security
+
+/owasp chapters london  
+# Equivalent to: /chapters london
+
+/owasp help
+# Shows available commands
+```
+
+**Implementation:**
+
+```python
+# backend/apps/slack/commands/owasp.py:8
+class Owasp(CommandBase):
+    """Slack bot /owasp command."""
+    
+    def find_command(self, command_name: str):
+        """Find the command class by name."""
+        if not command_name:
+            return None
+        
+        for cmd_class in (cls for cls in CommandBase.get_commands() if cls is not Owasp):
+            if cmd_class.__name__.lower() == command_name.lower():
+                return cmd_class()
+        return None
+```
+
+### /projects - Project Search
+
+Search OWASP projects from Slack:
+
+```bash
+/projects                    # List projects
+/projects security          # Search for "security" projects  
+/projects zap              # Find ZAP project
+```
+
+**Features:**
+- Returns up to 10 matching projects
+- Shows project metadata (stars, level, etc.)
+- Includes 80-char name truncation
+- 300-char summary truncation
+- Feedback and timestamp display
+- Direct links to project pages
+
+**Implementation:**
+
+```python
+# backend/apps/slack/commands/projects.py:8
+class Projects(CommandBase):
+    def render_blocks(self, command: dict):
+        return get_blocks(
+            search_query=command["text"].strip(),
+            limit=10,
+            presentation=EntityPresentation(
+                include_feedback=True,
+                include_metadata=True,
+                include_pagination=False,
+                include_timestamps=True,
+                name_truncation=80,
+                summary_truncation=300,
+            ),
+        )
+```
+
+### /chapters - Chapter Discovery
+
+Find OWASP chapters:
+
+```bash
+/chapters                    # List all chapters
+/chapters london            # Search for London chapter
+/chapters start             # Interactive start message
+/chapters help              # Show help
+```
+
+**Features:**
+- Same presentation format as projects
+- Location-based search
+- Leader information
+- Chapter activity metrics
+
+**Implementation:**
+
+```python
+# backend/apps/slack/commands/chapters.py:9
+class Chapters(CommandBase):
+    def render_blocks(self, command: dict):
+        command_text = command["text"].strip()
+        if command_text in COMMAND_HELP:
+            return super().render_blocks(command)
+        
+        return get_blocks(
+            search_query="" if command_text in COMMAND_START else command_text,
+            limit=10,
+            presentation=EntityPresentation(
+                include_feedback=True,
+                include_metadata=True,
+                include_pagination=False,
+                include_timestamps=True,
+                name_truncation=80,
+                summary_truncation=300,
+            ),
+        )
+```
+
+### /events - Event Listings
+
+View upcoming OWASP events:
+
+```bash
+/events                      # Show upcoming events
+```
+
+**Features:**
+- Shows events sorted by start date
+- Displays event name, dates, location
+- Includes event descriptions
+- Links to registration pages
+- Direct link to full events page
+
+**Implementation:**
+
+```python
+# backend/apps/slack/commands/events.py:25
+class Events(CommandBase):
+    def get_context(self, command):
+        return {
+            **super().get_context(command),
+            "EVENTS": get_events_data(),
+            "EVENTS_PAGE_NAME": "OWASP Events",
+            "EVENTS_PAGE_URL": f"{OWASP_URL}/events/",
+        }
+```
+
+### /ai - AI-Powered Q&A
+
+Ask questions about OWASP:
+
+```bash
+/ai What is OWASP ZAP?
+/ai How do I contribute to OWASP projects?
+/ai What are the OWASP Top 10?
+```
+
+**Features:**
+- Agentic RAG (Retrieval-Augmented Generation)
+- Question detection to filter non-OWASP queries
+- Iterative refinement for better answers
+- Context from projects, chapters, events, repositories
+- Markdown-formatted responses
+
+**Implementation:**
+
+```python
+# backend/apps/slack/commands/ai.py:6
+class Ai(CommandBase):
+    def render_blocks(self, command: dict):
+        from apps.slack.common.handlers.ai import get_blocks
+        return get_blocks(query=command["text"].strip())
+```
+
+**AI Handler:**
+
+```python
+# backend/apps/slack/common/handlers/ai.py:14
+def get_blocks(query: str) -> list[dict]:
+    ai_response = process_ai_query(query.strip())
+    if ai_response:
+        return [markdown(ai_response)]
+    return get_error_blocks()
+
+def process_ai_query(query: str) -> str | None:
+    question_detector = QuestionDetector()
+    if not question_detector.is_owasp_question(text=query):
+        return get_default_response()
+    
+    agent = AgenticRAGAgent()
+    result = agent.run(query=query)
+    return result["answer"]
+```
+
+<Note>
+  The AI command includes question detection to ensure queries are OWASP-related. Non-OWASP questions receive a polite redirect.
+</Note>
+
+### /committees - Committee Information
+
+Explore OWASP committees:
+
+```bash
+/committees                  # List committees
+/committees project         # Search project committee
+```
+
+**Implementation:**
+
+```python
+# backend/apps/slack/commands/committees.py:8
+class Committees(CommandBase):
+    def render_blocks(self, command: dict):
+        return get_blocks(
+            search_query=command["text"].strip(),
+            limit=10,
+            presentation=EntityPresentation(
+                include_feedback=True,
+                include_metadata=True,
+                include_pagination=False,
+                include_timestamps=True,
+                name_truncation=80,
+                summary_truncation=300,
+            ),
+        )
+```
+
+### /community - Community Resources
+
+Access community information:
+
+```bash
+/community                   # View community page info
+```
+
+**Implementation:**
+
+```python
+# backend/apps/slack/commands/community.py:7
+class Community(CommandBase):
+    def get_context(self, command: dict):
+        return {
+            **super().get_context(command),
+            "COMMUNITY_PAGE_NAME": "OWASP community",
+            "COMMUNITY_PAGE_URL": get_absolute_url("/members"),
+        }
+```
+
+## Command Base Class
+
+All commands inherit from `CommandBase`:
+
+```python
+# backend/apps/slack/commands/command.py:20
+class CommandBase:
+    """Base class for Slack commands."""
+    
+    @property
+    def command_name(self) -> str:
+        """Get the command name."""
+        return f"/{self.__class__.__name__.lower()}"
+    
+    def render_blocks(self, command):
+        """Get the rendered blocks."""
+        blocks = []
+        for section in self.render_text(self.get_context(command)).split(SECTION_BREAK):
+            if section.strip() == DIVIDER:
+                blocks.append({"type": "divider"})
+            elif section:
+                blocks.append(markdown(section))
+        return blocks
+    
+    def handler(self, ack, command, client):
+        """Handle the Slack command."""
+        ack()
+        if not settings.SLACK_COMMANDS_ENABLED:
+            return
+        
+        try:
+            if blocks := self.render_blocks(command):
+                client.chat_postMessage(
+                    blocks=blocks,
+                    channel=client.conversations_open(
+                        users=self.get_user_id(command),
+                    )["channel"]["id"],
+                    text=get_text(blocks),
+                )
+        except Exception:
+            logger.exception("Failed to handle command '%s'", self.command_name)
+```
+
+## Response Formatting
+
+### Entity Presentation
+
+Commands use standardized presentation configuration:
+
+```python
+EntityPresentation(
+    include_feedback=True,        # Show feedback prompts
+    include_metadata=True,        # Display entity metadata
+    include_pagination=False,     # Disable pagination in Slack
+    include_timestamps=True,      # Show creation/update times
+    name_truncation=80,          # Max name length
+    summary_truncation=300,      # Max summary length
+)
+```
+
+### Slack Block Format
+
+Responses use Slack's Block Kit:
+
+```python
+# Markdown text block
+markdown("**Project Name**\nProject description here")
+
+# Divider
+{"type": "divider"}
+
+# Section break
+SECTION_BREAK
+```
+
+## Templates
+
+Commands use Jinja2 templates:
+
+```
+backend/apps/slack/templates/commands/
+```
+
+**Available Templates:**
+- `ai.jinja`
+- `board.jinja`
+- `chapters.jinja`
+- `community.jinja`
+- `contact.jinja`
+- `contribute.jinja`
+- `donate.jinja`
+- `events.jinja`
+- `gsoc.jinja`
+- `jobs.jinja`
+- `leaders.jinja`
+- `news.jinja`
+- `owasp.jinja`
+- `policies.jinja`
+- `sponsors.jinja`
+- `staff.jinja`
+
+## Configuration
+
+Commands are registered at startup:
+
+```python
+# backend/apps/slack/commands/__init__.py:27
+if SlackConfig.app:
+    CommandBase.configure_commands()
+```
+
+### Environment Variables
+
+```bash
+SLACK_COMMANDS_ENABLED=true     # Enable/disable commands
+SLACK_BOT_TOKEN=xoxb-...       # Bot user OAuth token
+SLACK_SIGNING_SECRET=...       # Request verification
+```
+
+## Error Handling
+
+Commands include graceful error handling:
+
+```python
+try:
+    if blocks := self.render_blocks(command):
+        client.chat_postMessage(...)
+except Exception:
+    logger.exception("Failed to handle command '%s'", self.command_name)
+    blocks = [markdown(":warning: An error occurred. Please try again later.")]
+    client.chat_postMessage(...)
+```
+
+## Usage Tips
+
+<Tip>
+  Use `/owasp help` to see all available commands and their usage.
+</Tip>
+
+<Tip>
+  Commands are private - only you see the responses in your DM with NestBot.
+</Tip>
+
+<Tip>
+  The `/ai` command works best with specific, OWASP-related questions.
+</Tip>
+
+## Code Reference
+
+Key implementation files:
+
+- Commands: `backend/apps/slack/commands/`
+- Base Class: `backend/apps/slack/commands/command.py:20`
+- AI Handler: `backend/apps/slack/common/handlers/ai.py:14`
+- Templates: `backend/apps/slack/templates/commands/`
+
+## Related Features
+
+- [AI Insights](/features/ai-insights) - Learn about the AI system powering `/ai`
+- [Projects](/features/projects) - Project data returned by `/projects`
+- [Chapters](/features/chapters) - Chapter data returned by `/chapters`
+- [Events](/features/events) - Event data returned by `/events`

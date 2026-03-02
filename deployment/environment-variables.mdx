@@ -1,0 +1,595 @@
+---
+title: Environment Variables
+description: Complete reference for all OWASP Nest environment variables
+icon: gear
+---
+
+## Overview
+
+OWASP Nest uses environment variables for configuration across frontend (Next.js) and backend (Django) services. This page documents all available environment variables from `.env.example` files.
+
+<Warning>
+All `.env` files must be saved in **UTF-8 format without BOM** (Byte Order Mark). Incorrect encoding causes "Unexpected character" errors.
+</Warning>
+
+## Frontend Environment Variables
+
+Configured in `frontend/.env`.
+
+### Authentication
+
+<ParamField path="NEXTAUTH_SECRET" type="string" required>
+  Secret key for NextAuth.js session encryption. Generate a secure random string.
+  
+  **Example**: `openssl rand -base64 32`
+</ParamField>
+
+<ParamField path="NEXTAUTH_URL" type="string" required>
+  The canonical URL of your site. Used by NextAuth.js for redirects.
+  
+  **Example**: `http://localhost:3000/` (development)
+  
+  **Example**: `https://nest.owasp.org/` (production)
+</ParamField>
+
+### API Endpoints (Client-Side)
+
+These variables are prefixed with `NEXT_PUBLIC_` and accessible in browser JavaScript.
+
+<ParamField path="NEXT_PUBLIC_API_URL" type="string" required>
+  Base URL for the backend API.
+  
+  **Example**: `http://localhost:8000/` (development)
+  
+  **Example**: `https://nest.owasp.org/` (production)
+  
+  **Usage**: Frontend components use this for API calls.
+</ParamField>
+
+<ParamField path="NEXT_PUBLIC_CSRF_URL" type="string" required>
+  Endpoint to fetch CSRF tokens for secure POST/PUT/DELETE requests.
+  
+  **Example**: `http://localhost:8000/csrf/`
+  
+  **Example**: `https://nest.owasp.org/csrf/`
+</ParamField>
+
+<ParamField path="NEXT_PUBLIC_GRAPHQL_URL" type="string" required>
+  GraphQL API endpoint.
+  
+  **Example**: `http://localhost:8000/graphql/`
+  
+  **Example**: `https://nest.owasp.org/graphql/`
+</ParamField>
+
+<ParamField path="NEXT_PUBLIC_IDX_URL" type="string" required>
+  Base URL for indexing/search service.
+  
+  **Example**: `http://localhost:8000/idx/`
+</ParamField>
+
+### API Endpoints (Server-Side)
+
+These variables are only accessible in Next.js server-side code.
+
+<ParamField path="NEXT_SERVER_CSRF_URL" type="string" required>
+  Server-side CSRF endpoint. Used for SSR.
+  
+  **Example**: `http://backend:8000/csrf/` (Docker internal)
+  
+  **Example**: `https://lambda-url.amazonaws.com/csrf/` (AWS)
+</ParamField>
+
+<ParamField path="NEXT_SERVER_GRAPHQL_URL" type="string" required>
+  Server-side GraphQL endpoint.
+  
+  **Example**: `http://backend:8000/graphql/` (Docker internal)
+  
+  **Example**: `https://lambda-url.amazonaws.com/graphql/` (AWS)
+</ParamField>
+
+### GitHub OAuth
+
+<ParamField path="NEXT_SERVER_GITHUB_CLIENT_ID" type="string" required>
+  GitHub OAuth App Client ID.
+  
+  **Setup**: Create OAuth App at [GitHub Developer Settings](https://github.com/settings/developers)
+</ParamField>
+
+<ParamField path="NEXT_SERVER_GITHUB_CLIENT_SECRET" type="string" required>
+  GitHub OAuth App Client Secret.
+  
+  <Warning>
+    Never commit this value to version control.
+  </Warning>
+</ParamField>
+
+### Environment Configuration
+
+<ParamField path="NEXT_PUBLIC_ENVIRONMENT" type="string" required>
+  Current environment identifier.
+  
+  **Values**: `local`, `development`, `staging`, `production`
+  
+  **Usage**: Toggle features and logging based on environment.
+</ParamField>
+
+<ParamField path="NEXT_SERVER_DISABLE_SSR" type="boolean" default="false">
+  Disable server-side rendering for debugging.
+  
+  **Example**: `false` (enable SSR), `true` (disable SSR)
+</ParamField>
+
+### Analytics and Monitoring
+
+<ParamField path="NEXT_PUBLIC_GTM_ID" type="string" optional>
+  Google Tag Manager container ID.
+  
+  **Example**: `GTM-XXXXXXX`
+  
+  **Usage**: Required for Google Tag Manager integration.
+</ParamField>
+
+<ParamField path="NEXT_PUBLIC_POSTHOG_KEY" type="string" optional>
+  PostHog project API key for product analytics.
+  
+  **Example**: `phc_abc123xyz456`
+</ParamField>
+
+<ParamField path="NEXT_PUBLIC_POSTHOG_HOST" type="string" optional>
+  PostHog instance URL.
+  
+  **Example**: `https://us.i.posthog.com`
+</ParamField>
+
+<ParamField path="NEXT_PUBLIC_SENTRY_DSN" type="string" optional>
+  Sentry Data Source Name for frontend error tracking.
+  
+  **Example**: `https://abc123@o123456.ingest.sentry.io/7890123`
+</ParamField>
+
+### Release Information
+
+<ParamField path="NEXT_PUBLIC_RELEASE_VERSION" type="string" optional>
+  Current application version.
+  
+  **Example**: `1.0.5`
+  
+  **Usage**: Displayed in UI and sent to error tracking services.
+</ParamField>
+
+### Feature Flags
+
+<ParamField path="NEXT_PUBLIC_IS_PROJECT_HEALTH_ENABLED" type="boolean" default="true">
+  Enable Project Health Dashboard feature.
+  
+  **Example**: `true`
+</ParamField>
+
+## Backend Environment Variables
+
+Configured in `backend/.env`.
+
+### Django Configuration
+
+<ParamField path="DJANGO_CONFIGURATION" type="string" required>
+  Django settings configuration class to load.
+  
+  **Values**: `Local`, `Test`, `Production`
+  
+  **Example**: `Local` (development), `Production` (production)
+</ParamField>
+
+<ParamField path="DJANGO_SECRET_KEY" type="string" required>
+  Django secret key for cryptographic signing.
+  
+  **Example**: `openssl rand -base64 50`
+  
+  <Warning>
+    Never commit this value to version control. Use a strong random string.
+  </Warning>
+  
+  **Usage**: Session management, CSRF tokens, password reset tokens.
+</ParamField>
+
+<ParamField path="DJANGO_ALLOWED_HOSTS" type="string" required>
+  Comma-separated list of allowed HTTP Host header values.
+  
+  **Example**: `*` (development only)
+  
+  **Example**: `nest.owasp.org,staging.nest.owasp.org` (production)
+  
+  **Usage**: Prevents host header attacks.
+</ParamField>
+
+### Database Configuration
+
+<ParamField path="DJANGO_DB_HOST" type="string" required>
+  PostgreSQL database hostname.
+  
+  **Example**: `db` (Docker Compose)
+  
+  **Example**: `localhost` (local development)
+  
+  **Example**: `nest-staging-db.abc123.us-east-1.rds.amazonaws.com` (AWS RDS)
+</ParamField>
+
+<ParamField path="DJANGO_DB_NAME" type="string" required>
+  PostgreSQL database name.
+  
+  **Example**: `production-nest-db`
+</ParamField>
+
+<ParamField path="DJANGO_DB_USER" type="string" required>
+  PostgreSQL database username.
+  
+  **Example**: `nest-user-production`
+</ParamField>
+
+<ParamField path="DJANGO_DB_PASSWORD" type="string" required>
+  PostgreSQL database password.
+  
+  <Warning>
+    Use strong passwords in production. Never commit to version control.
+  </Warning>
+</ParamField>
+
+<ParamField path="DJANGO_DB_PORT" type="string" required>
+  PostgreSQL database port.
+  
+  **Example**: `5432` (default PostgreSQL port)
+</ParamField>
+
+### Redis Cache Configuration
+
+<ParamField path="DJANGO_REDIS_HOST" type="string" required>
+  Redis server hostname.
+  
+  **Example**: `production-nest-cache` (Docker Compose)
+  
+  **Example**: `nest-staging-redis.abc123.cache.amazonaws.com` (ElastiCache)
+</ParamField>
+
+<ParamField path="DJANGO_REDIS_PASSWORD" type="string" required>
+  Redis authentication password.
+  
+  <Warning>
+    Must match `REDIS_PASSWORD` in cache environment file.
+  </Warning>
+</ParamField>
+
+<ParamField path="DJANGO_REDIS_AUTH_ENABLED" type="boolean" default="true">
+  Enable Redis password authentication.
+  
+  **Example**: `True` (production - always use authentication)
+</ParamField>
+
+### Algolia Search
+
+<ParamField path="DJANGO_ALGOLIA_APPLICATION_ID" type="string" required>
+  Algolia Application ID.
+  
+  **Setup**: Sign up at [Algolia](https://www.algolia.com/)
+  
+  **Example**: `APPID123`
+</ParamField>
+
+<ParamField path="DJANGO_ALGOLIA_WRITE_API_KEY" type="string" required>
+  Algolia Write API Key with `addObject` permission.
+  
+  **Setup**: Generate from Algolia Dashboard → API Keys
+  
+  <Warning>
+    Use Write API Key (not Search-Only Key). Must have `addObject` permission.
+  </Warning>
+</ParamField>
+
+<ParamField path="DJANGO_ALGOLIA_EXCLUDED_LOCAL_INDEX_NAMES" type="string" optional>
+  Comma-separated list of index names to exclude in local development.
+  
+  **Example**: `projects_dev,users_dev`
+</ParamField>
+
+### AI Services
+
+<ParamField path="DJANGO_OPEN_AI_SECRET_KEY" type="string" optional>
+  OpenAI API key for AI features.
+  
+  **Setup**: Generate at [OpenAI Platform](https://platform.openai.com/api-keys)
+  
+  **Usage**: AI-powered features, embeddings, completions.
+</ParamField>
+
+<ParamField path="DJANGO_ELEVENLABS_API_KEY" type="string" optional>
+  ElevenLabs API key for text-to-speech features.
+  
+  **Setup**: Generate at [ElevenLabs](https://elevenlabs.io/)
+</ParamField>
+
+### GitHub Integration
+
+<ParamField path="GITHUB_TOKEN" type="string" required>
+  GitHub Personal Access Token for API access.
+  
+  **Setup**: Create at [GitHub Settings → Developer settings → Personal access tokens](https://github.com/settings/tokens)
+  
+  **Permissions**: `repo`, `read:org`, `read:user`
+  
+  **Usage**: Fetch OWASP project data, sync repositories, create issues.
+</ParamField>
+
+### Slack Integration
+
+<ParamField path="DJANGO_SLACK_BOT_TOKEN" type="string" optional>
+  Slack Bot User OAuth Token.
+  
+  **Setup**: Create Slack App → Install App → Copy Bot User OAuth Token
+  
+  **Example**: `xoxb-123456789012-1234567890123-abcdefghijklmnopqrstuvwx`
+  
+  **Usage**: Send notifications to Slack channels.
+</ParamField>
+
+<ParamField path="DJANGO_SLACK_SIGNING_SECRET" type="string" optional>
+  Slack Signing Secret for webhook verification.
+  
+  **Setup**: Slack App → Basic Information → App Credentials → Signing Secret
+  
+  **Usage**: Verify requests from Slack webhooks.
+  
+  <Warning>
+    Never install development Slack apps in OWASP Slack workspace.
+  </Warning>
+</ParamField>
+
+### AWS Services
+
+<ParamField path="DJANGO_AWS_ACCESS_KEY_ID" type="string" optional>
+  AWS access key ID for S3 and other AWS services.
+  
+  **Usage**: File uploads, backups, static assets.
+  
+  <Warning>
+    Prefer IAM roles over access keys in production.
+  </Warning>
+</ParamField>
+
+<ParamField path="DJANGO_AWS_SECRET_ACCESS_KEY" type="string" optional>
+  AWS secret access key.
+  
+  <Warning>
+    Never commit to version control.
+  </Warning>
+</ParamField>
+
+### Monitoring and Error Tracking
+
+<ParamField path="DJANGO_SENTRY_DSN" type="string" optional>
+  Sentry Data Source Name for backend error tracking.
+  
+  **Example**: `https://xyz123@o123456.ingest.sentry.io/7890124`
+  
+  **Setup**: Create project at [Sentry.io](https://sentry.io/)
+</ParamField>
+
+### Geolocation
+
+<ParamField path="DJANGO_PUBLIC_IP_ADDRESS" type="string" required>
+  IP address for geolocation features in local development.
+  
+  **Example**: `127.0.0.1` (local)
+  
+  **Example**: `12.34.56.78` (production - use actual server IP)
+  
+  **Usage**: Geographic location-based functionality.
+</ParamField>
+
+### Release Information
+
+<ParamField path="DJANGO_RELEASE_VERSION" type="string" optional>
+  Current backend release version.
+  
+  **Example**: `1.0.5`
+  
+  **Usage**: Error tracking, logs, version display.
+</ParamField>
+
+## Docker Compose Environment Files
+
+Production Docker Compose setup requires multiple `.env` files.
+
+### Cache Environment (.env.cache)
+
+<ParamField path="REDIS_PASSWORD" type="string" required>
+  Redis authentication password.
+  
+  **Example**: `openssl rand -base64 32`
+  
+  <Warning>
+    Must match `DJANGO_REDIS_PASSWORD` in backend environment.
+  </Warning>
+</ParamField>
+
+### Database Environment (.env.db)
+
+<ParamField path="POSTGRES_DB" type="string" required>
+  PostgreSQL database name.
+  
+  **Example**: `production-nest-db`
+  
+  <Warning>
+    Must match `DJANGO_DB_NAME` in backend environment.
+  </Warning>
+</ParamField>
+
+<ParamField path="POSTGRES_USER" type="string" required>
+  PostgreSQL username.
+  
+  **Example**: `nest-user-production`
+  
+  <Warning>
+    Must match `DJANGO_DB_USER` in backend environment.
+  </Warning>
+</ParamField>
+
+<ParamField path="POSTGRES_PASSWORD" type="string" required>
+  PostgreSQL password.
+  
+  <Warning>
+    Must match `DJANGO_DB_PASSWORD` in backend environment. Use strong passwords.
+  </Warning>
+</ParamField>
+
+## AWS Parameter Store
+
+For AWS deployments, secrets are stored in Systems Manager Parameter Store.
+
+### Parameter Naming Convention
+
+```
+/nest/{environment}/{parameter_name}
+```
+
+**Example**: `/nest/staging/DJANGO_SECRET_KEY`
+
+### Required Parameters
+
+All backend `DJANGO_*` and `GITHUB_TOKEN` variables should be stored as SecureString parameters with KMS encryption.
+
+Navigate to **AWS Console → Systems Manager → Parameter Store** and populate:
+
+- `/nest/staging/DJANGO_SECRET_KEY`
+- `/nest/staging/DJANGO_ALGOLIA_APPLICATION_ID`
+- `/nest/staging/DJANGO_ALGOLIA_WRITE_API_KEY`
+- `/nest/staging/DJANGO_OPEN_AI_SECRET_KEY`
+- `/nest/staging/DJANGO_SLACK_BOT_TOKEN`
+- `/nest/staging/DJANGO_SLACK_SIGNING_SECRET`
+- `/nest/staging/DJANGO_SENTRY_DSN`
+- `/nest/staging/GITHUB_TOKEN`
+- `/nest/staging/NEXTAUTH_SECRET`
+- `/nest/staging/NEXT_SERVER_GITHUB_CLIENT_ID`
+- `/nest/staging/NEXT_SERVER_GITHUB_CLIENT_SECRET`
+
+## Security Best Practices
+
+1. **Never commit secrets to version control**
+   - Use `.gitignore` to exclude `.env` files
+   - Use AWS Parameter Store or similar for production
+
+2. **Use strong random values for secrets**
+   ```bash
+   # Generate secure random string
+   openssl rand -base64 32
+   ```
+
+3. **Rotate secrets regularly**
+   - Update passwords quarterly
+   - Regenerate API keys after team member departures
+
+4. **Use different secrets per environment**
+   - Never reuse production secrets in staging/development
+
+5. **Restrict access to secrets**
+   - Use IAM roles in AWS
+   - Limit Parameter Store access to specific users
+
+6. **Enable encryption at rest**
+   - Use KMS-encrypted SecureString parameters in AWS
+   - Enable Redis AUTH
+   - Enable PostgreSQL SSL connections
+
+7. **Validate environment files**
+   - Check UTF-8 encoding without BOM
+   - Verify no trailing whitespace
+   - Ensure proper key=value format
+
+## Environment File Template
+
+Minimal required configuration for local development:
+
+### backend/.env
+
+```bash
+DJANGO_CONFIGURATION=Local
+DJANGO_SECRET_KEY=your-secret-key-here
+DJANGO_ALLOWED_HOSTS=*
+DJANGO_DB_HOST=db
+DJANGO_DB_NAME=nest
+DJANGO_DB_USER=postgres
+DJANGO_DB_PASSWORD=postgres
+DJANGO_DB_PORT=5432
+DJANGO_REDIS_HOST=cache
+DJANGO_REDIS_PASSWORD=redis-password
+DJANGO_REDIS_AUTH_ENABLED=True
+DJANGO_ALGOLIA_APPLICATION_ID=your-algolia-app-id
+DJANGO_ALGOLIA_WRITE_API_KEY=your-algolia-write-key
+DJANGO_PUBLIC_IP_ADDRESS=127.0.0.1
+GITHUB_TOKEN=your-github-token
+```
+
+### frontend/.env
+
+```bash
+NEXTAUTH_SECRET=your-nextauth-secret
+NEXTAUTH_URL=http://localhost:3000/
+NEXT_PUBLIC_API_URL=http://localhost:8000/
+NEXT_PUBLIC_CSRF_URL=http://localhost:8000/csrf/
+NEXT_PUBLIC_ENVIRONMENT=local
+NEXT_PUBLIC_GRAPHQL_URL=http://localhost:8000/graphql/
+NEXT_PUBLIC_IDX_URL=http://localhost:8000/idx/
+NEXT_PUBLIC_IS_PROJECT_HEALTH_ENABLED=true
+NEXT_SERVER_CSRF_URL=http://backend:8000/csrf/
+NEXT_SERVER_DISABLE_SSR=false
+NEXT_SERVER_GITHUB_CLIENT_ID=your-github-client-id
+NEXT_SERVER_GITHUB_CLIENT_SECRET=your-github-client-secret
+NEXT_SERVER_GRAPHQL_URL=http://backend:8000/graphql/
+```
+
+## Troubleshooting
+
+### "Unexpected character" error
+
+**Cause**: `.env` file has incorrect encoding (UTF-8 with BOM).
+
+**Solution**: Save file as "UTF-8 without BOM" in your text editor.
+
+In VS Code:
+1. Click encoding in bottom-right corner
+2. Select "Save with Encoding"
+3. Choose "UTF-8" (not "UTF-8 with BOM")
+
+### Environment changes not applied
+
+**Cause**: Application not restarted after `.env` changes.
+
+**Solution**: Restart Docker containers:
+
+```bash
+docker compose restart
+```
+
+### Database connection refused
+
+**Cause**: Database credentials mismatch between backend and database environment files.
+
+**Solution**: Verify `DJANGO_DB_*` values in `.env.backend` match `POSTGRES_*` values in `.env.db`.
+
+### Redis authentication failed
+
+**Cause**: Redis password mismatch.
+
+**Solution**: Verify `DJANGO_REDIS_PASSWORD` matches `REDIS_PASSWORD` in `.env.cache`.
+
+### Algolia indexing fails
+
+**Cause**: Invalid Algolia API key or missing permissions.
+
+**Solution**:
+1. Verify `DJANGO_ALGOLIA_APPLICATION_ID` and `DJANGO_ALGOLIA_WRITE_API_KEY`
+2. Ensure API key has `addObject` permission in Algolia Dashboard
+
+## Next Steps
+
+- [Docker Deployment Guide](/deployment/docker)
+- [Infrastructure Setup](/deployment/infrastructure)
+- [Local Development Setup](/development/setup)

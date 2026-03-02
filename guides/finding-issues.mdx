@@ -1,0 +1,385 @@
+---
+title: Finding Good First Issues
+description: Discover contribution opportunities in OWASP projects
+icon: magnifying-glass
+---
+
+OWASP Nest helps you find issues that match your skills and interests across all OWASP projects. This guide shows you how to discover the perfect contribution opportunity.
+
+## Understanding Issue Filters
+
+Nest provides powerful filtering options to help you find issues that match your experience level and interests.
+
+### Available Filters
+
+<CardGroup cols={2}>
+  <Card title="Organization" icon="building">
+    Filter issues by GitHub organization (e.g., "OWASP")
+  </Card>
+  <Card title="Repository" icon="folder">
+    Filter issues by specific repository name
+  </Card>
+  <Card title="State" icon="circle-dot">
+    Filter by issue state: `open` or `closed`
+  </Card>
+  <Card title="Labels" icon="tag">
+    Filter by issue labels like `good first issue`, `bug`, `enhancement`
+  </Card>
+</CardGroup>
+
+## Finding Issues via the API
+
+You can query issues programmatically using the REST API.
+
+### List All Issues
+
+```bash
+GET /api/v0/issues/
+```
+
+**Query Parameters:**
+- `organization` - Organization name (e.g., "OWASP")
+- `repository` - Repository name (e.g., "Nest")
+- `state` - Issue state: `open` or `closed`
+- `ordering` - Sort order: `created_at`, `-created_at`, `updated_at`, `-updated_at`
+- `page` - Page number for pagination
+- `limit` - Items per page
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get open issues from OWASP/Nest
+    curl "https://nest.owasp.org/api/v0/issues/?organization=OWASP&repository=Nest&state=open"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/issues/",
+        params={
+            "organization": "OWASP",
+            "repository": "Nest",
+            "state": "open",
+            "ordering": "-created_at"
+        }
+    )
+    
+    issues = response.json()
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'https://nest.owasp.org/api/v0/issues/?' + 
+      new URLSearchParams({
+        organization: 'OWASP',
+        repository: 'Nest',
+        state: 'open',
+        ordering: '-created_at'
+      })
+    );
+    
+    const issues = await response.json();
+    ```
+  </Tab>
+</Tabs>
+
+### Get Specific Issue
+
+```bash
+GET /api/v0/issues/{organization}/{repository}/{issue_number}
+```
+
+**Example:**
+
+```bash
+curl "https://nest.owasp.org/api/v0/issues/OWASP/Nest/1234"
+```
+
+**Response:**
+
+```json
+{
+  "created_at": "2024-01-15T10:30:00Z",
+  "state": "open",
+  "title": "Add search filters to issues page",
+  "updated_at": "2024-01-16T14:20:00Z",
+  "url": "https://github.com/OWASP/Nest/issues/1234",
+  "body": "Detailed issue description..."
+}
+```
+
+## Filtering by Experience Level
+
+<Steps>
+  <Step title="Good First Issues">
+    Perfect for newcomers to the project:
+    
+    ```bash
+    # Search for beginner-friendly issues
+    curl "https://nest.owasp.org/api/v0/issues/?organization=OWASP&state=open" \
+      | jq '.results[] | select(.labels[]? | contains("good first issue"))'
+    ```
+    
+    These issues typically:
+    - Have clear descriptions
+    - Require minimal context
+    - Include guidance on implementation
+    - Are smaller in scope
+  </Step>
+  
+  <Step title="Intermediate Issues">
+    For contributors with project knowledge:
+    
+    Look for issues labeled:
+    - `enhancement` - Feature improvements
+    - `bug` - Bug fixes requiring investigation
+    - `refactoring` - Code quality improvements
+  </Step>
+  
+  <Step title="Advanced Issues">
+    For experienced contributors:
+    
+    Look for issues labeled:
+    - `architecture` - System design changes
+    - `performance` - Optimization work
+    - `security` - Security enhancements
+  </Step>
+</Steps>
+
+## Sorting and Ordering
+
+Choose the right sort order for your workflow:
+
+<Tabs>
+  <Tab title="Newest First">
+    ```bash
+    curl "https://nest.owasp.org/api/v0/issues/?ordering=-created_at"
+    ```
+    
+    Use this to find the latest reported issues.
+  </Tab>
+  
+  <Tab title="Oldest First">
+    ```bash
+    curl "https://nest.owasp.org/api/v0/issues/?ordering=created_at"
+    ```
+    
+    Use this to help with longstanding issues.
+  </Tab>
+  
+  <Tab title="Recently Updated">
+    ```bash
+    curl "https://nest.owasp.org/api/v0/issues/?ordering=-updated_at"
+    ```
+    
+    Use this to find active discussions.
+  </Tab>
+  
+  <Tab title="Least Recently Updated">
+    ```bash
+    curl "https://nest.owasp.org/api/v0/issues/?ordering=updated_at"
+    ```
+    
+    Use this to find stale issues that need attention.
+  </Tab>
+</Tabs>
+
+## Finding Issues by Topic
+
+Use the search functionality to find issues by keyword:
+
+### Frontend Issues
+
+```bash
+# Find React/UI related issues
+curl "https://nest.owasp.org/api/v0/issues/?repository=Nest" \
+  | jq '.results[] | select(.title | test("react|component|ui"; "i"))'
+```
+
+### Backend Issues
+
+```bash
+# Find Django/API related issues
+curl "https://nest.owasp.org/api/v0/issues/?repository=Nest" \
+  | jq '.results[] | select(.title | test("django|api|database"; "i"))'
+```
+
+### Documentation Issues
+
+```bash
+# Find documentation related issues
+curl "https://nest.owasp.org/api/v0/issues/?repository=Nest" \
+  | jq '.results[] | select(.title | test("docs|documentation|readme"; "i"))'
+```
+
+## Working with Pagination
+
+The API returns paginated results:
+
+```json
+{
+  "count": 156,
+  "next": "https://nest.owasp.org/api/v0/issues/?page=2",
+  "previous": null,
+  "results": [
+    // ... issues ...
+  ]
+}
+```
+
+### Iterate Through All Pages
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    def get_all_issues(organization, state="open"):
+        issues = []
+        url = "https://nest.owasp.org/api/v0/issues/"
+        params = {"organization": organization, "state": state}
+        
+        while url:
+            response = requests.get(url, params=params)
+            data = response.json()
+            issues.extend(data["results"])
+            url = data["next"]
+            params = {}  # Next URL already includes params
+        
+        return issues
+    
+    all_issues = get_all_issues("OWASP")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    async function getAllIssues(organization, state = 'open') {
+      let issues = [];
+      let url = 'https://nest.owasp.org/api/v0/issues/';
+      let params = { organization, state };
+      
+      while (url) {
+        const response = await fetch(
+          url + (params ? '?' + new URLSearchParams(params) : '')
+        );
+        const data = await response.json();
+        issues.push(...data.results);
+        url = data.next;
+        params = null; // Next URL includes params
+      }
+      
+      return issues;
+    }
+    
+    const allIssues = await getAllIssues('OWASP');
+    ```
+  </Tab>
+</Tabs>
+
+## Best Practices for Issue Selection
+
+<AccordionGroup>
+  <Accordion title="Start Small">
+    Begin with `good first issue` labels to understand:
+    - Project structure and conventions
+    - Development workflow
+    - Testing requirements
+    - Code review process
+  </Accordion>
+  
+  <Accordion title="Check for Assignment">
+    Before starting work:
+    1. Read the issue completely
+    2. Check if someone is already assigned
+    3. Comment asking to be assigned
+    4. Wait for maintainer confirmation
+    
+    <Warning>
+      PRs for issues you're not assigned to will be automatically closed.
+    </Warning>
+  </Accordion>
+  
+  <Accordion title="Assess Time Commitment">
+    Look for clues about issue complexity:
+    - **Quick wins**: Documentation, typos, simple bug fixes
+    - **Medium effort**: UI improvements, basic features
+    - **Large effort**: Architecture changes, complex features
+  </Accordion>
+  
+  <Accordion title="Understand Context">
+    Before claiming an issue:
+    1. Read all comments and discussion
+    2. Check if there are linked PRs or related issues
+    3. Review any design documents or specifications
+    4. Ask questions if anything is unclear
+  </Accordion>
+</AccordionGroup>
+
+## Example: Finding Your First Contribution
+
+<Steps>
+  <Step title="Browse Open Issues">
+    ```bash
+    curl "https://nest.owasp.org/api/v0/issues/?organization=OWASP&state=open&ordering=-created_at"
+    ```
+  </Step>
+  
+  <Step title="Filter by Repository">
+    Choose a project that interests you:
+    
+    ```bash
+    curl "https://nest.owasp.org/api/v0/issues/?organization=OWASP&repository=Nest&state=open"
+    ```
+  </Step>
+  
+  <Step title="Review Issue Details">
+    Get full details for an issue:
+    
+    ```bash
+    curl "https://nest.owasp.org/api/v0/issues/OWASP/Nest/1234"
+    ```
+  </Step>
+  
+  <Step title="Request Assignment">
+    On GitHub:
+    1. Navigate to the issue URL
+    2. Comment: "I'd like to work on this issue. Could you please assign it to me?"
+    3. Wait for maintainer response
+  </Step>
+  
+  <Step title="Start Contributing">
+    Once assigned, follow the [Contributing Guide](/guides/contributing) to set up your development environment and submit your PR.
+  </Step>
+</Steps>
+
+## Issue State Reference
+
+<ResponseField name="open" type="string">
+  Issue is currently open and accepting contributions
+</ResponseField>
+
+<ResponseField name="closed" type="string">
+  Issue has been resolved or closed without a fix
+</ResponseField>
+
+## Common Issue Labels
+
+| Label | Description | Experience Level |
+|-------|-------------|------------------|
+| `good first issue` | Beginner-friendly issue | Beginner |
+| `bug` | Something isn't working | All levels |
+| `enhancement` | New feature or request | Intermediate |
+| `documentation` | Documentation improvements | Beginner |
+| `help wanted` | Extra attention needed | All levels |
+| `priority: high` | Urgent issue | Experienced |
+| `wontfix` | Will not be worked on | N/A |
+
+<Tip>
+  Subscribe to repository notifications to get alerts when new issues are created!
+</Tip>

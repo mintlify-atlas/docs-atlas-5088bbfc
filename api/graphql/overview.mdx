@@ -1,0 +1,276 @@
+---
+title: GraphQL API Overview
+description: Learn how to use the OWASP Nest GraphQL API for querying and mutating data
+---
+
+OWASP Nest provides a GraphQL API that allows you to query and mutate data using a flexible, type-safe interface.
+
+## GraphQL Endpoint
+
+The GraphQL API is available at:
+
+```
+POST https://nest.owasp.org/graphql/
+```
+
+All GraphQL requests are made to this single endpoint using HTTP POST with a JSON body.
+
+## Authentication
+
+Many queries and mutations require authentication. OWASP Nest uses session-based authentication via GitHub OAuth2.
+
+### Authenticating
+
+First, authenticate using the `githubAuth` mutation:
+
+<CodeGroup>
+```graphql Request
+mutation {
+  githubAuth(accessToken: "your_github_access_token") {
+    ok
+    message
+    user {
+      username
+      isOwaspStaff
+    }
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "githubAuth": {
+      "ok": true,
+      "message": "Successfully authenticated with GitHub.",
+      "user": {
+        "username": "johndoe",
+        "isOwaspStaff": false
+      }
+    }
+  }
+}
+```
+</CodeGroup>
+
+Once authenticated, your session cookie will be used for subsequent requests.
+
+### Logging Out
+
+<CodeGroup>
+```graphql Request
+mutation {
+  logoutUser {
+    ok
+    message
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "logoutUser": {
+      "ok": true,
+      "message": "User logged out successfully."
+    }
+  }
+}
+```
+</CodeGroup>
+
+## Schema Introspection
+
+You can explore the entire GraphQL schema using introspection queries. This is useful for discovering available types, fields, and operations.
+
+### Full Schema Query
+
+<CodeGroup>
+```graphql Request
+query {
+  __schema {
+    types {
+      name
+      kind
+      description
+    }
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "__schema": {
+      "types": [
+        {
+          "name": "Query",
+          "kind": "OBJECT",
+          "description": "Schema queries."
+        },
+        {
+          "name": "Mutation",
+          "kind": "OBJECT",
+          "description": "Schema mutations."
+        }
+      ]
+    }
+  }
+}
+```
+</CodeGroup>
+
+### Query Type Fields
+
+Discover all available queries:
+
+<CodeGroup>
+```graphql Request
+query {
+  __type(name: "Query") {
+    name
+    fields {
+      name
+      description
+      type {
+        name
+        kind
+      }
+    }
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "__type": {
+      "name": "Query",
+      "fields": [
+        {
+          "name": "project",
+          "description": "Resolve project.",
+          "type": {
+            "name": "ProjectNode",
+            "kind": "OBJECT"
+          }
+        },
+        {
+          "name": "recentProjects",
+          "description": "Resolve recent projects.",
+          "type": {
+            "name": null,
+            "kind": "LIST"
+          }
+        }
+      ]
+    }
+  }
+}
+```
+</CodeGroup>
+
+### Mutation Type Fields
+
+Discover all available mutations:
+
+<CodeGroup>
+```graphql Request
+query {
+  __type(name: "Mutation") {
+    name
+    fields {
+      name
+      description
+      args {
+        name
+        type {
+          name
+          kind
+        }
+      }
+    }
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "__type": {
+      "name": "Mutation",
+      "fields": [
+        {
+          "name": "createApiKey",
+          "description": "Create a new API key for the authenticated user.",
+          "args": [
+            {
+              "name": "name",
+              "type": {
+                "name": "String",
+                "kind": "SCALAR"
+              }
+            },
+            {
+              "name": "expiresAt",
+              "type": {
+                "name": "DateTime",
+                "kind": "SCALAR"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+</CodeGroup>
+
+## GraphQL Features
+
+### Query Depth Limiting
+
+OWASP Nest GraphQL API enforces a maximum query depth of 5 levels to prevent performance issues. Queries exceeding this depth will be rejected.
+
+### Introspection
+
+Introspection is enabled in development mode but disabled in production for security reasons.
+
+### CSRF Protection
+
+All GraphQL requests require a valid CSRF token. You can obtain a CSRF token from the `/csrf/` endpoint before making GraphQL requests.
+
+## Error Handling
+
+GraphQL errors are returned in the `errors` array of the response:
+
+```json
+{
+  "errors": [
+    {
+      "message": "You must be an admin of this program to update it.",
+      "locations": [
+        {
+          "line": 2,
+          "column": 3
+        }
+      ],
+      "path": ["updateProgram"]
+    }
+  ],
+  "data": null
+}
+```
+
+Common error types:
+- **Authentication errors**: User not logged in or lacks permissions
+- **Validation errors**: Invalid input data (e.g., dates, limits)
+- **Not found errors**: Requested resource doesn't exist
+- **Permission errors**: User lacks required permissions
+
+## Next Steps
+
+- [Explore available queries](/api/graphql/queries)
+- [Explore available mutations](/api/graphql/mutations)
+- [Learn about REST API](/api/overview)

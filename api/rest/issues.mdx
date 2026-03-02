@@ -1,0 +1,319 @@
+---
+title: 'Issues API'
+description: 'Retrieve GitHub issues using the REST API'
+---
+
+## List Issues
+
+<ParamField query="GET" path="/api/v0/issues/">
+  Retrieve a paginated list of GitHub issues.
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="organization" type="string" optional>
+  Filter issues by organization that owns the repository.
+  
+  Example: `OWASP`
+</ParamField>
+
+<ParamField query="repository" type="string" optional>
+  Filter issues by repository name.
+  
+  Example: `Nest`
+</ParamField>
+
+<ParamField query="state" type="string" optional>
+  Filter issues by state.
+  - `open` - Open issues
+  - `closed` - Closed issues
+</ParamField>
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `updated_at` - Last update date (ascending)
+  - `-updated_at` - Last update date (descending)
+  
+  Default: `-created_at,-updated_at`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="items" type="array">
+  Array of issue objects
+  
+  <Expandable title="Issue Object">
+    <ResponseField name="created_at" type="datetime">
+      ISO 8601 timestamp when the issue was created
+    </ResponseField>
+    
+    <ResponseField name="state" type="string">
+      Issue state: `open` or `closed`
+    </ResponseField>
+    
+    <ResponseField name="title" type="string">
+      Issue title
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="datetime">
+      ISO 8601 timestamp when the issue was last updated
+    </ResponseField>
+    
+    <ResponseField name="url" type="string">
+      GitHub URL for the issue
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="count" type="integer">
+  Total number of issues matching the filter
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List all issues
+    curl -X GET "https://nest.owasp.org/api/v0/issues/"
+    
+    # Filter by organization
+    curl -X GET "https://nest.owasp.org/api/v0/issues/?organization=OWASP"
+    
+    # Filter by repository
+    curl -X GET "https://nest.owasp.org/api/v0/issues/?repository=Nest"
+    
+    # Filter by organization and repository
+    curl -X GET "https://nest.owasp.org/api/v0/issues/?organization=OWASP&repository=Nest"
+    
+    # Filter by state (open issues only)
+    curl -X GET "https://nest.owasp.org/api/v0/issues/?state=open"
+    
+    # Sort by update date (most recently updated first)
+    curl -X GET "https://nest.owasp.org/api/v0/issues/?ordering=-updated_at"
+    
+    # Combine filters and pagination
+    curl -X GET "https://nest.owasp.org/api/v0/issues/?organization=OWASP&state=open&page=1&limit=20"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # List all issues
+    response = requests.get("https://nest.owasp.org/api/v0/issues/")
+    issues = response.json()
+    
+    # Filter by organization
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/issues/",
+        params={"organization": "OWASP"}
+    )
+    
+    # Filter by repository
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/issues/",
+        params={"repository": "Nest"}
+    )
+    
+    # Filter by organization and repository
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/issues/",
+        params={
+            "organization": "OWASP",
+            "repository": "Nest"
+        }
+    )
+    
+    # Filter by state (open issues only)
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/issues/",
+        params={"state": "open"}
+    )
+    
+    # Sort by update date
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/issues/",
+        params={"ordering": "-updated_at"}
+    )
+    
+    # Print issue titles
+    for issue in issues['items']:
+        print(f"[{issue['state'].upper()}] {issue['title']}")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // List all issues
+    const response = await fetch('https://nest.owasp.org/api/v0/issues/');
+    const issues = await response.json();
+    
+    // Filter by organization
+    const orgUrl = new URL('https://nest.owasp.org/api/v0/issues/');
+    orgUrl.searchParams.set('organization', 'OWASP');
+    const orgResponse = await fetch(orgUrl);
+    
+    // Filter by repository
+    const repoUrl = new URL('https://nest.owasp.org/api/v0/issues/');
+    repoUrl.searchParams.set('repository', 'Nest');
+    const repoResponse = await fetch(repoUrl);
+    
+    // Filter by organization and repository
+    const combinedUrl = new URL('https://nest.owasp.org/api/v0/issues/');
+    combinedUrl.searchParams.set('organization', 'OWASP');
+    combinedUrl.searchParams.set('repository', 'Nest');
+    const combinedResponse = await fetch(combinedUrl);
+    
+    // Filter by state (open issues only)
+    const openUrl = new URL('https://nest.owasp.org/api/v0/issues/');
+    openUrl.searchParams.set('state', 'open');
+    const openResponse = await fetch(openUrl);
+    
+    // Sort by update date
+    const sortedUrl = new URL('https://nest.owasp.org/api/v0/issues/');
+    sortedUrl.searchParams.set('ordering', '-updated_at');
+    const sortedResponse = await fetch(sortedUrl);
+    
+    // Print issue titles
+    issues.items.forEach(issue => {
+      console.log(`[${issue.state.toUpperCase()}] ${issue.title}`);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Issue
+
+<ParamField query="GET" path="/api/v0/issues/{organization_id}/{repository_id}/{issue_id}">
+  Retrieve detailed information about a specific GitHub issue.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="organization_id" type="string" required>
+  Organization login/username that owns the repository.
+  
+  Example: `OWASP`
+</ParamField>
+
+<ParamField path="repository_id" type="string" required>
+  Repository name.
+  
+  Example: `Nest`
+</ParamField>
+
+<ParamField path="issue_id" type="integer" required>
+  Issue number.
+  
+  Example: `1234`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="created_at" type="datetime">
+  ISO 8601 timestamp when the issue was created
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Issue state: `open` or `closed`
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Issue title
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  ISO 8601 timestamp when the issue was last updated
+</ResponseField>
+
+<ResponseField name="url" type="string">
+  GitHub URL for the issue
+</ResponseField>
+
+<ResponseField name="body" type="string">
+  Issue body/description content
+</ResponseField>
+
+### Error Responses
+
+<ResponseField name="404 Not Found" type="object">
+  <Expandable title="Error Schema">
+    <ResponseField name="message" type="string">
+      Error message: "Issue not found"
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get issue by organization, repository, and issue number
+    curl -X GET "https://nest.owasp.org/api/v0/issues/OWASP/Nest/1234"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # Get issue details
+    organization = "OWASP"
+    repository = "Nest"
+    issue_number = 1234
+    
+    response = requests.get(
+        f"https://nest.owasp.org/api/v0/issues/{organization}/{repository}/{issue_number}"
+    )
+    
+    if response.status_code == 200:
+        issue = response.json()
+        print(f"Title: {issue['title']}")
+        print(f"State: {issue['state']}")
+        print(f"Created: {issue['created_at']}")
+        print(f"Updated: {issue['updated_at']}")
+        print(f"\nBody:\n{issue['body']}")
+    elif response.status_code == 404:
+        print("Issue not found")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // Get issue details
+    const organization = 'OWASP';
+    const repository = 'Nest';
+    const issueNumber = 1234;
+    
+    const response = await fetch(
+      `https://nest.owasp.org/api/v0/issues/${organization}/${repository}/${issueNumber}`
+    );
+    
+    if (response.ok) {
+      const issue = await response.json();
+      console.log(`Title: ${issue.title}`);
+      console.log(`State: ${issue.state}`);
+      console.log(`Created: ${issue.created_at}`);
+      console.log(`Updated: ${issue.updated_at}`);
+      console.log(`\nBody:\n${issue.body}`);
+    } else if (response.status === 404) {
+      console.log('Issue not found');
+    }
+    ```
+  </Tab>
+</Tabs>

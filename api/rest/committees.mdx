@@ -1,0 +1,232 @@
+---
+title: 'Committees API'
+description: 'Retrieve OWASP committees using the REST API'
+---
+
+## List Committees
+
+<ParamField query="GET" path="/api/v0/committees/">
+  Retrieve a paginated list of OWASP committees.
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `updated_at` - Last update date (ascending)
+  - `-updated_at` - Last update date (descending)
+  
+  Default: `-created_at`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="items" type="array">
+  Array of committee objects
+  
+  <Expandable title="Committee Object">
+    <ResponseField name="created_at" type="datetime">
+      ISO 8601 timestamp when the committee was created
+    </ResponseField>
+    
+    <ResponseField name="key" type="string">
+      Unique committee identifier (nest_key)
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Committee name
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="datetime">
+      ISO 8601 timestamp when the committee was last updated
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="count" type="integer">
+  Total number of committees
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List all committees
+    curl -X GET "https://nest.owasp.org/api/v0/committees/"
+    
+    # Sort by creation date (oldest first)
+    curl -X GET "https://nest.owasp.org/api/v0/committees/?ordering=created_at"
+    
+    # Sort by update date (most recently updated first)
+    curl -X GET "https://nest.owasp.org/api/v0/committees/?ordering=-updated_at"
+    
+    # Pagination
+    curl -X GET "https://nest.owasp.org/api/v0/committees/?page=1&limit=10"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # List all committees
+    response = requests.get("https://nest.owasp.org/api/v0/committees/")
+    committees = response.json()
+    
+    # Sort by creation date (oldest first)
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/committees/",
+        params={"ordering": "created_at"}
+    )
+    
+    # Pagination
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/committees/",
+        params={"page": 1, "limit": 10}
+    )
+    
+    # Print all committees
+    for committee in committees['items']:
+        print(f"{committee['name']} (key: {committee['key']})")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // List all committees
+    const response = await fetch('https://nest.owasp.org/api/v0/committees/');
+    const committees = await response.json();
+    
+    // Sort by creation date (oldest first)
+    const sortedUrl = new URL('https://nest.owasp.org/api/v0/committees/');
+    sortedUrl.searchParams.set('ordering', 'created_at');
+    const sortedResponse = await fetch(sortedUrl);
+    
+    // Pagination
+    const paginatedUrl = new URL('https://nest.owasp.org/api/v0/committees/');
+    paginatedUrl.searchParams.set('page', '1');
+    paginatedUrl.searchParams.set('limit', '10');
+    const paginatedResponse = await fetch(paginatedUrl);
+    
+    // Print all committees
+    committees.items.forEach(committee => {
+      console.log(`${committee.name} (key: ${committee.key})`);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Committee
+
+<ParamField query="GET" path="/api/v0/committees/{committee_id}">
+  Retrieve detailed information about a specific OWASP committee.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="committee_id" type="string" required>
+  Committee identifier. Can be provided with or without the `www-committee-` prefix.
+  
+  Examples:
+  - `project`
+  - `www-committee-project`
+  - `outreach`
+  - `www-committee-outreach`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="created_at" type="datetime">
+  ISO 8601 timestamp when the committee was created
+</ResponseField>
+
+<ResponseField name="key" type="string">
+  Unique committee identifier (nest_key)
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Committee name
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  ISO 8601 timestamp when the committee was last updated
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Committee description and purpose
+</ResponseField>
+
+### Error Responses
+
+<ResponseField name="404 Not Found" type="object">
+  <Expandable title="Error Schema">
+    <ResponseField name="message" type="string">
+      Error message: "Committee not found"
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get committee by key (without prefix)
+    curl -X GET "https://nest.owasp.org/api/v0/committees/project"
+    
+    # Get committee by key (with prefix)
+    curl -X GET "https://nest.owasp.org/api/v0/committees/www-committee-project"
+    
+    # Get outreach committee
+    curl -X GET "https://nest.owasp.org/api/v0/committees/outreach"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # Get committee details
+    committee_id = "project"
+    response = requests.get(f"https://nest.owasp.org/api/v0/committees/{committee_id}")
+    
+    if response.status_code == 200:
+        committee = response.json()
+        print(f"Name: {committee['name']}")
+        print(f"Description: {committee['description']}")
+        print(f"Created: {committee['created_at']}")
+    elif response.status_code == 404:
+        print("Committee not found")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // Get committee details
+    const committeeId = 'project';
+    const response = await fetch(`https://nest.owasp.org/api/v0/committees/${committeeId}`);
+    
+    if (response.ok) {
+      const committee = await response.json();
+      console.log(`Name: ${committee.name}`);
+      console.log(`Description: ${committee.description}`);
+      console.log(`Created: ${committee.created_at}`);
+    } else if (response.status === 404) {
+      console.log('Committee not found');
+    }
+    ```
+  </Tab>
+</Tabs>

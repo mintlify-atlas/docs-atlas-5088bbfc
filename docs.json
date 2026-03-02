@@ -1,122 +1,131 @@
 {
   "$schema": "https://mintlify.com/docs.json",
+  "name": "OWASP Nest",
   "theme": "mint",
-  "name": "Mint Starter Kit",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#2563EB",
+    "light": "#3B82F6",
+    "dark": "#1E40AF"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/OWASP/Nest"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/OWASP/Nest",
+      "slack": "https://owasp.slack.com/archives/project-nest",
+      "x": "https://bsky.app/profile/nest.owasp.org",
+      "linkedin": "https://www.linkedin.com/groups/14656108/"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Platform Features",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "features/search",
+              "features/projects",
+              "features/chapters",
+              "features/events",
+              "features/slack-bot",
+              "features/ai-insights"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "User Guides",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "guides/contributing",
+              "guides/finding-issues",
+              "guides/using-search",
+              "guides/chapters-map"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Development",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "development/setup",
+              "development/architecture",
+              "development/backend",
+              "development/frontend",
+              "development/testing"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/docker",
+              "deployment/infrastructure",
+              "deployment/environment-variables"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Overview",
             "pages": [
-              "api-reference/introduction"
+              "api/overview",
+              "api/authentication"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "REST API",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api/rest/projects",
+              "api/rest/chapters",
+              "api/rest/committees",
+              "api/rest/events",
+              "api/rest/issues",
+              "api/rest/repositories",
+              "api/rest/members"
+            ]
+          },
+          {
+            "group": "GraphQL API",
+            "pages": [
+              "api/graphql/overview",
+              "api/graphql/queries",
+              "api/graphql/mutations"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Community",
+        "groups": [
+          {
+            "group": "Contributing",
+            "pages": [
+              "community/contributing",
+              "community/code-of-conduct",
+              "community/security"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "community/leaders",
+              "community/gsoc",
+              "community/mentorship"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

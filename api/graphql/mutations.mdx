@@ -1,0 +1,722 @@
+---
+title: GraphQL Mutations
+description: Available GraphQL mutations in the OWASP Nest API
+---
+
+OWASP Nest provides GraphQL mutations for creating, updating, and deleting data. Most mutations require authentication.
+
+## Authentication
+
+### githubAuth
+
+Authenticate a user via GitHub OAuth2.
+
+<CodeGroup>
+```graphql Request
+mutation {
+  githubAuth(accessToken: "gho_xxxxxxxxxxxx") {
+    ok
+    message
+    user {
+      username
+      isOwaspStaff
+    }
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "githubAuth": {
+      "ok": true,
+      "message": "Successfully authenticated with GitHub.",
+      "user": {
+        "username": "johndoe",
+        "isOwaspStaff": false
+      }
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `accessToken` (String!): GitHub OAuth2 access token
+
+**Returns**:
+- `ok` (Boolean!): Success status
+- `message` (String!): Human-readable message
+- `user` (AuthUserNode): The authenticated user (if successful)
+
+**Errors**:
+- `"GitHub authentication request failed."`: Invalid or expired token
+- `"Verified primary email is required on your GitHub account."`: No verified email found
+
+### logoutUser
+
+Log out the current authenticated user.
+
+<CodeGroup>
+```graphql Request
+mutation {
+  logoutUser {
+    ok
+    message
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "logoutUser": {
+      "ok": true,
+      "message": "User logged out successfully."
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Returns**:
+- `ok` (Boolean!): Success status
+- `message` (String): Human-readable message
+
+## API Keys
+
+### createApiKey
+
+Create a new API key for the authenticated user.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+mutation {
+  createApiKey(
+    name: "Production API Key"
+    expiresAt: "2025-12-31T23:59:59Z"
+  ) {
+    ok
+    code
+    message
+    apiKey {
+      uuid
+      name
+      createdAt
+      expiresAt
+      isRevoked
+    }
+    rawKey
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "createApiKey": {
+      "ok": true,
+      "code": "SUCCESS",
+      "message": "API key created successfully.",
+      "apiKey": {
+        "uuid": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Production API Key",
+        "createdAt": "2024-03-15T10:30:00Z",
+        "expiresAt": "2025-12-31T23:59:59Z",
+        "isRevoked": false
+      },
+      "rawKey": "owaspnest_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `name` (String!): Name for the API key
+- `expiresAt` (DateTime!): Expiration date (must be in the future)
+
+**Returns**:
+- `ok` (Boolean!): Success status
+- `code` (String): Result code (SUCCESS, INVALID_NAME, INVALID_DATE, LIMIT_REACHED, ERROR)
+- `message` (String): Human-readable message
+- `apiKey` (ApiKeyNode): The created API key metadata
+- `rawKey` (String): The actual API key (only returned once!)
+
+**Important**: Save the `rawKey` immediately - it cannot be retrieved again!
+
+**Errors**:
+- `INVALID_NAME`: Name is empty or too long
+- `INVALID_DATE`: Expiration date is in the past
+- `LIMIT_REACHED`: User has reached the maximum number of active API keys
+
+### revokeApiKey
+
+Revoke an existing API key.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+mutation {
+  revokeApiKey(uuid: "550e8400-e29b-41d4-a716-446655440000") {
+    ok
+    code
+    message
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "revokeApiKey": {
+      "ok": true,
+      "code": "SUCCESS",
+      "message": "API key revoked successfully."
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `uuid` (UUID!): UUID of the API key to revoke
+
+**Returns**:
+- `ok` (Boolean!): Success status
+- `code` (String): Result code (SUCCESS, NOT_FOUND)
+- `message` (String): Human-readable message
+
+**Errors**:
+- `NOT_FOUND`: API key doesn't exist or doesn't belong to the user
+
+## Mentorship Programs
+
+### createProgram
+
+Create a new mentorship program. The authenticated user becomes the owner.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+mutation {
+  createProgram(inputData: {
+    name: "Google Summer of Code 2024"
+    description: "OWASP participation in GSoC 2024"
+    menteesLimit: 10
+    startedAt: "2024-05-27T00:00:00Z"
+    endedAt: "2024-08-26T23:59:59Z"
+    domains: ["web-security", "mobile-security"]
+    tags: ["gsoc", "mentorship"]
+  }) {
+    name
+    key
+    status
+    startedAt
+    endedAt
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "createProgram": {
+      "name": "Google Summer of Code 2024",
+      "key": "google-summer-of-code-2024",
+      "status": "DRAFT",
+      "startedAt": "2024-05-27T00:00:00Z",
+      "endedAt": "2024-08-26T23:59:59Z"
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `inputData` (CreateProgramInput!):
+  - `name` (String!): Program name
+  - `description` (String!): Program description
+  - `menteesLimit` (Int!): Maximum number of mentees
+  - `startedAt` (DateTime!): Start date
+  - `endedAt` (DateTime!): End date
+  - `domains` (List[String]!): Domains list
+  - `tags` (List[String]!): Tags list
+
+**Errors**:
+- `"End date must be after start date."`: Invalid date range
+
+### updateProgram
+
+Update an existing mentorship program. Only admins can update.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+mutation {
+  updateProgram(inputData: {
+    key: "gsoc-2024"
+    name: "Google Summer of Code 2024 - Updated"
+    description: "Updated description"
+    menteesLimit: 15
+    startedAt: "2024-05-27T00:00:00Z"
+    endedAt: "2024-08-26T23:59:59Z"
+    domains: ["web-security"]
+    tags: ["gsoc"]
+    status: PUBLISHED
+    adminLogins: ["johndoe", "janedoe"]
+  }) {
+    name
+    status
+    menteesLimit
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "updateProgram": {
+      "name": "Google Summer of Code 2024 - Updated",
+      "status": "PUBLISHED",
+      "menteesLimit": 15
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `inputData` (UpdateProgramInput!):
+  - `key` (String!): Program key to update
+  - `name` (String): New program name
+  - `description` (String): New description
+  - `menteesLimit` (Int): New mentee limit
+  - `startedAt` (DateTime): New start date
+  - `endedAt` (DateTime): New end date
+  - `domains` (List[String]): New domains list
+  - `tags` (List[String]): New tags list
+  - `status` (ProgramStatusEnum): New status (DRAFT, PUBLISHED, ARCHIVED)
+  - `adminLogins` (List[String]): GitHub logins of admins
+
+**Errors**:
+- `"Program with key 'xxx' not found."`: Program doesn't exist
+- `"You must be an admin of this program to update it."`: Permission denied
+- `"GitHub user 'xxx' not found."`: Invalid admin login
+
+### updateProgramStatus
+
+Update only the status of a program.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+mutation {
+  updateProgramStatus(inputData: {
+    key: "gsoc-2024"
+    status: PUBLISHED
+  }) {
+    key
+    status
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "updateProgramStatus": {
+      "key": "gsoc-2024",
+      "status": "PUBLISHED"
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `inputData` (UpdateProgramStatusInput!):
+  - `key` (String!): Program key
+  - `status` (ProgramStatusEnum!): New status
+
+## Mentorship Modules
+
+### createModule
+
+Create a new mentorship module within a program. User must be a program admin.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+mutation {
+  createModule(inputData: {
+    programKey: "gsoc-2024"
+    name: "Web Security Fundamentals"
+    description: "Learn the basics of web security"
+    projectId: 123
+    experienceLevel: BEGINNER
+    startedAt: "2024-06-01T00:00:00Z"
+    endedAt: "2024-07-01T23:59:59Z"
+    domains: ["web-security"]
+    labels: ["xss", "csrf"]
+    tags: ["security", "web"]
+    mentorLogins: ["mentor1", "mentor2"]
+  }) {
+    key
+    name
+    experienceLevel
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "createModule": {
+      "key": "web-security-fundamentals",
+      "name": "Web Security Fundamentals",
+      "experienceLevel": "BEGINNER"
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `inputData` (CreateModuleInput!):
+  - `programKey` (String!): Parent program key
+  - `name` (String!): Module name
+  - `description` (String!): Module description
+  - `projectId` (Int!): OWASP project ID
+  - `experienceLevel` (ExperienceLevelEnum!): BEGINNER, INTERMEDIATE, or ADVANCED
+  - `startedAt` (DateTime!): Start date
+  - `endedAt` (DateTime!): End date
+  - `domains` (List[String]!): Domains list
+  - `labels` (List[String]!): GitHub labels
+  - `tags` (List[String]!): Tags list
+  - `mentorLogins` (List[String]): GitHub logins of mentors
+
+**Errors**:
+- `"Module start date cannot be before program start date."`: Invalid date range
+- `"Module end date cannot be after program end date."`: Invalid date range
+
+### updateModule
+
+Update an existing module. User must be a program admin or module mentor.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+mutation {
+  updateModule(inputData: {
+    key: "web-security-fundamentals"
+    programKey: "gsoc-2024"
+    name: "Advanced Web Security"
+    description: "Updated description"
+    projectId: 123
+    experienceLevel: ADVANCED
+    startedAt: "2024-06-01T00:00:00Z"
+    endedAt: "2024-07-01T23:59:59Z"
+    domains: ["web-security"]
+    labels: ["xss"]
+    tags: ["security"]
+    mentorLogins: ["mentor1"]
+  }) {
+    name
+    experienceLevel
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "updateModule": {
+      "name": "Advanced Web Security",
+      "experienceLevel": "ADVANCED"
+    }
+  }
+}
+```
+</CodeGroup>
+
+### deleteModule
+
+Delete a module. User must be a program admin.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+mutation {
+  deleteModule(
+    programKey: "gsoc-2024"
+    moduleKey: "web-security-fundamentals"
+  )
+}
+```
+
+```json Response
+{
+  "data": {
+    "deleteModule": "Module 'Web Security Fundamentals' has been deleted successfully."
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `programKey` (String!): Program key
+- `moduleKey` (String!): Module key to delete
+
+### assignIssueToUser
+
+Assign a GitHub issue to a user within a module. Only mentors can assign.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+mutation {
+  assignIssueToUser(
+    moduleKey: "web-security-fundamentals"
+    programKey: "gsoc-2024"
+    issueNumber: 42
+    userLogin: "mentee1"
+  ) {
+    key
+    name
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "assignIssueToUser": {
+      "key": "web-security-fundamentals",
+      "name": "Web Security Fundamentals"
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `moduleKey` (String!): Module key
+- `programKey` (String!): Program key
+- `issueNumber` (Int!): GitHub issue number
+- `userLogin` (String!): GitHub login of user to assign
+
+**Errors**:
+- `"Only mentors of this module can assign issues."`: Permission denied
+- `"Assignee not found."`: User doesn't exist
+- `"Issue not found in this module."`: Issue doesn't exist
+
+### unassignIssueFromUser
+
+Unassign a GitHub issue from a user. Only mentors can unassign.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+mutation {
+  unassignIssueFromUser(
+    moduleKey: "web-security-fundamentals"
+    programKey: "gsoc-2024"
+    issueNumber: 42
+    userLogin: "mentee1"
+  ) {
+    key
+    name
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "unassignIssueFromUser": {
+      "key": "web-security-fundamentals",
+      "name": "Web Security Fundamentals"
+    }
+  }
+}
+```
+</CodeGroup>
+
+### setTaskDeadline
+
+Set a deadline for an assigned issue. Only mentors can set deadlines.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+mutation {
+  setTaskDeadline(
+    moduleKey: "web-security-fundamentals"
+    programKey: "gsoc-2024"
+    issueNumber: 42
+    deadlineAt: "2024-06-15T23:59:59Z"
+  ) {
+    key
+    name
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "setTaskDeadline": {
+      "key": "web-security-fundamentals",
+      "name": "Web Security Fundamentals"
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `moduleKey` (String!): Module key
+- `programKey` (String!): Program key
+- `issueNumber` (Int!): GitHub issue number
+- `deadlineAt` (DateTime!): Deadline date
+
+**Errors**:
+- `"Cannot set deadline: issue has no assignees."`: Issue must be assigned first
+- `"Deadline cannot be in the past."`: Invalid deadline date
+
+### clearTaskDeadline
+
+Clear the deadline for an assigned issue. Only mentors can clear deadlines.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+mutation {
+  clearTaskDeadline(
+    moduleKey: "web-security-fundamentals"
+    programKey: "gsoc-2024"
+    issueNumber: 42
+  ) {
+    key
+    name
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "clearTaskDeadline": {
+      "key": "web-security-fundamentals",
+      "name": "Web Security Fundamentals"
+    }
+  }
+}
+```
+</CodeGroup>
+
+## Using Variables
+
+You can use variables to make mutations more dynamic and reusable:
+
+<CodeGroup>
+```graphql Mutation
+mutation CreateApiKey($name: String!, $expiresAt: DateTime!) {
+  createApiKey(name: $name, expiresAt: $expiresAt) {
+    ok
+    code
+    message
+    rawKey
+    apiKey {
+      uuid
+      name
+      expiresAt
+    }
+  }
+}
+```
+
+```json Variables
+{
+  "name": "Production API Key",
+  "expiresAt": "2025-12-31T23:59:59Z"
+}
+```
+
+```json Response
+{
+  "data": {
+    "createApiKey": {
+      "ok": true,
+      "code": "SUCCESS",
+      "message": "API key created successfully.",
+      "rawKey": "owaspnest_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "apiKey": {
+        "uuid": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Production API Key",
+        "expiresAt": "2025-12-31T23:59:59Z"
+      }
+    }
+  }
+}
+```
+</CodeGroup>
+
+## Error Handling
+
+Mutations return errors in two ways:
+
+### Result Object Errors
+
+Many mutations return a result object with `ok`, `code`, and `message` fields:
+
+```json
+{
+  "data": {
+    "createApiKey": {
+      "ok": false,
+      "code": "INVALID_DATE",
+      "message": "Expiry date must be in future",
+      "apiKey": null,
+      "rawKey": null
+    }
+  }
+}
+```
+
+### GraphQL Errors
+
+Permission and validation errors are returned in the `errors` array:
+
+```json
+{
+  "errors": [
+    {
+      "message": "You must be an admin of this program to update it.",
+      "locations": [{"line": 2, "column": 3}],
+      "path": ["updateProgram"]
+    }
+  ],
+  "data": null
+}
+```
+
+## Next Steps
+
+- [Explore queries](/api/graphql/queries)
+- [Learn about authentication](/api/graphql/overview#authentication)
+- [View REST API documentation](/api/overview)

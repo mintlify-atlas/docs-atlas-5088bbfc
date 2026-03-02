@@ -1,0 +1,832 @@
+---
+title: Frontend Development
+description: Next.js frontend development guide for OWASP Nest
+---
+
+## Overview
+
+The OWASP Nest frontend is built with Next.js 16, React 19, and TypeScript, using the App Router for server-side rendering and modern React features.
+
+## Tech Stack
+
+<CardGroup cols={3}>
+  <Card title="Next.js 16" icon="react">
+    React framework with App Router
+  </Card>
+  <Card title="TypeScript" icon="code">
+    Type-safe JavaScript
+  </Card>
+  <Card title="Tailwind CSS 4" icon="palette">
+    Utility-first CSS
+  </Card>
+  <Card title="Apollo Client" icon="download">
+    GraphQL client
+  </Card>
+  <Card title="HeroUI" icon="sidebar">
+    React component library
+  </Card>
+  <Card title="pnpm" icon="box">
+    Fast package manager
+  </Card>
+</CardGroup>
+
+## Project Structure
+
+```
+frontend/
+├── __tests__/              # Test files
+│   ├── a11y/              # Accessibility tests
+│   ├── e2e/               # End-to-end tests
+│   ├── unit/              # Unit tests
+│   └── mockData/          # Test fixtures
+├── public/                 # Static assets
+├── src/
+│   ├── app/               # Next.js 16 App Router
+│   │   ├── about/        # About pages
+│   │   ├── api/          # API routes
+│   │   ├── auth/         # Authentication pages
+│   │   ├── chapters/     # Chapter pages
+│   │   ├── committees/   # Committee pages
+│   │   ├── community/    # Community pages
+│   │   ├── projects/     # Project pages
+│   │   ├── layout.tsx    # Root layout
+│   │   └── page.tsx      # Home page
+│   ├── components/        # React components
+│   │   ├── ui/           # Reusable UI components
+│   │   ├── icons/        # Icon components
+│   │   └── ...           # Feature components
+│   ├── contexts/          # React contexts
+│   ├── hooks/             # Custom React hooks
+│   ├── server/            # Server-side utilities
+│   ├── types/             # TypeScript types
+│   ├── utils/             # Client utilities
+│   └── wrappers/          # Component wrappers
+├── .env                    # Environment variables
+├── jest.config.ts          # Jest configuration
+├── next.config.js          # Next.js configuration
+├── package.json            # Dependencies
+├── playwright.config.ts    # Playwright configuration
+├── tailwind.config.js      # Tailwind configuration
+└── tsconfig.json           # TypeScript configuration
+```
+
+## Development Setup
+
+### Prerequisites
+
+Ensure you have completed the [local development setup](/development/setup) first.
+
+### Dependencies
+
+Dependencies are managed with pnpm and defined in `package.json`:
+
+<Tabs>
+  <Tab title="Core">
+    ```json package.json
+    {
+      "dependencies": {
+        "next": "^16.1.6",
+        "react": "^19.2.4",
+        "react-dom": "^19.2.4",
+        "typescript": "~5.9.3"
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="UI">
+    ```json package.json
+    {
+      "dependencies": {
+        "@heroui/react": "^2.8.9",
+        "tailwindcss": "^4.2.1",
+        "framer-motion": "^12.34.3",
+        "clsx": "^2.1.1",
+        "tailwind-merge": "^3.5.0"
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Data Fetching">
+    ```json package.json
+    {
+      "dependencies": {
+        "@apollo/client": "^4.1.6",
+        "graphql": "^16.13.0",
+        "next-auth": "^4.24.13"
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Dev Tools">
+    ```json package.json
+    {
+      "devDependencies": {
+        "@playwright/test": "^1.58.2",
+        "jest": "^30.2.0",
+        "eslint": "^9.39.3",
+        "prettier": "^3.8.1"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Update Dependencies
+
+```bash
+make update-frontend-dependencies
+```
+
+This runs `pnpm update` to update all frontend dependencies.
+
+## Common Commands
+
+<Tabs>
+  <Tab title="Development">
+    <CodeGroup>
+    ```bash Start Dev Server
+    # Runs on http://localhost:3000
+    pnpm run dev
+    ```
+
+    ```bash Build for Production
+    pnpm run build
+    ```
+
+    ```bash Start Production Server
+    pnpm run start
+    ```
+    </CodeGroup>
+  </Tab>
+  
+  <Tab title="Code Quality">
+    <CodeGroup>
+    ```bash Lint Code
+    # Check for issues
+    pnpm run lint:check
+    
+    # Fix issues
+    pnpm run lint
+    ```
+
+    ```bash Format Code
+    # Check formatting
+    pnpm run format:check
+    
+    # Fix formatting
+    pnpm run format
+    ```
+
+    ```bash Type Check
+    # Included in test:unit
+    tsc --noEmit
+    ```
+    </CodeGroup>
+  </Tab>
+  
+  <Tab title="GraphQL">
+    <CodeGroup>
+    ```bash Generate Types
+    pnpm run graphql-codegen
+    ```
+    </CodeGroup>
+
+    This generates TypeScript types from GraphQL schema and queries.
+  </Tab>
+  
+  <Tab title="Make Commands">
+    <CodeGroup>
+    ```bash Check Frontend
+    make check-frontend
+    ```
+
+    ```bash Frontend Shell
+    make shell-frontend
+    ```
+
+    ```bash Execute Command
+    CMD="pnpm list" make exec-frontend-command
+    ```
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+## Next.js App Router
+
+### File-Based Routing
+
+Next.js uses file-based routing in the `app/` directory:
+
+```
+app/
+├── page.tsx               # / (home)
+├── layout.tsx             # Root layout
+├── about/
+│   └── page.tsx          # /about
+├── projects/
+│   ├── page.tsx          # /projects
+│   ├── [key]/
+│   │   └── page.tsx      # /projects/[key]
+│   └── dashboard/
+│       └── page.tsx      # /projects/dashboard
+└── api/
+    └── auth/
+        └── [...nextauth]/
+            └── route.ts   # /api/auth/*
+```
+
+### Layouts
+
+<Tabs>
+  <Tab title="Root Layout">
+    ```tsx app/layout.tsx
+    import { Inter } from 'next/font/google'
+    import './globals.css'
+    
+    const inter = Inter({ subsets: ['latin'] })
+    
+    export default function RootLayout({
+      children,
+    }: {
+      children: React.ReactNode
+    }) {
+      return (
+        <html lang="en">
+          <body className={inter.className}>
+            {children}
+          </body>
+        </html>
+      )
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Nested Layout">
+    ```tsx app/projects/layout.tsx
+    export default function ProjectsLayout({
+      children,
+    }: {
+      children: React.ReactNode
+    }) {
+      return (
+        <div className="container mx-auto">
+          <nav>{/* Project navigation */}</nav>
+          {children}
+        </div>
+      )
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Server vs Client Components
+
+<Tabs>
+  <Tab title="Server Component">
+    ```tsx app/projects/page.tsx
+    // No "use client" directive = Server Component
+    import { getProjects } from '@/server/projects'
+    
+    export default async function ProjectsPage() {
+      const projects = await getProjects()
+      
+      return (
+        <div>
+          <h1>Projects</h1>
+          {projects.map((project) => (
+            <div key={project.id}>{project.name}</div>
+          ))}
+        </div>
+      )
+    }
+    ```
+
+    **Benefits:**
+    - Zero client-side JavaScript
+    - SEO-friendly
+    - Direct database/API access
+  </Tab>
+  
+  <Tab title="Client Component">
+    ```tsx components/SearchBar.tsx
+    'use client'
+    
+    import { useState } from 'react'
+    
+    export function SearchBar() {
+      const [query, setQuery] = useState('')
+      
+      return (
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search..."
+        />
+      )
+    }
+    ```
+
+    **When to use:**
+    - Interactive features
+    - useState, useEffect hooks
+    - Browser APIs
+    - Event handlers
+  </Tab>
+</Tabs>
+
+## Data Fetching
+
+### GraphQL with Apollo Client
+
+<Steps>
+  <Step title="Define Query">
+    ```graphql app/projects/queries.graphql
+    query GetProjects($first: Int) {
+      projects(first: $first) {
+        edges {
+          node {
+            id
+            name
+            description
+            url
+          }
+        }
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Generate Types">
+    ```bash
+    pnpm run graphql-codegen
+    ```
+
+    Creates `queries.generated.ts` with TypeScript types.
+  </Step>
+  
+  <Step title="Use in Component">
+    ```tsx app/projects/ProjectList.tsx
+    'use client'
+    
+    import { useQuery } from '@apollo/client'
+    import { GetProjectsDocument } from './queries.generated'
+    
+    export function ProjectList() {
+      const { data, loading, error } = useQuery(GetProjectsDocument, {
+        variables: { first: 10 },
+      })
+      
+      if (loading) return <div>Loading...</div>
+      if (error) return <div>Error: {error.message}</div>
+      
+      return (
+        <div>
+          {data?.projects?.edges?.map(({ node }) => (
+            <div key={node.id}>{node.name}</div>
+          ))}
+        </div>
+      )
+    }
+    ```
+  </Step>
+</Steps>
+
+### REST API Fetch
+
+<Tabs>
+  <Tab title="Server Component">
+    ```tsx app/projects/page.tsx
+    async function getProjects() {
+      const res = await fetch('http://backend:8000/api/v0/projects/', {
+        cache: 'no-store', // or 'force-cache'
+      })
+      return res.json()
+    }
+    
+    export default async function ProjectsPage() {
+      const { projects } = await getProjects()
+      return <div>{/* Render projects */}</div>
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Client Component">
+    ```tsx components/ProjectList.tsx
+    'use client'
+    
+    import { useEffect, useState } from 'react'
+    
+    export function ProjectList() {
+      const [projects, setProjects] = useState([])
+      
+      useEffect(() => {
+        fetch('/api/v0/projects/')
+          .then((res) => res.json())
+          .then((data) => setProjects(data.projects))
+      }, [])
+      
+      return <div>{/* Render projects */}</div>
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Styling
+
+### Tailwind CSS
+
+<Tabs>
+  <Tab title="Utility Classes">
+    ```tsx
+    <div className="container mx-auto px-4">
+      <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+        OWASP Nest
+      </h1>
+      <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
+        Your gateway to OWASP
+      </p>
+    </div>
+    ```
+  </Tab>
+  
+  <Tab title="Custom Classes">
+    ```tsx tailwind.config.js
+    module.exports = {
+      theme: {
+        extend: {
+          colors: {
+            owasp: {
+              blue: '#1E40AF',
+              orange: '#F97316',
+            },
+          },
+        },
+      },
+    }
+    ```
+
+    Usage:
+    ```tsx
+    <div className="bg-owasp-blue text-white">
+      OWASP Blue
+    </div>
+    ```
+  </Tab>
+  
+  <Tab title="clsx & tw-merge">
+    ```tsx
+    import { clsx } from 'clsx'
+    import { twMerge } from 'tailwind-merge'
+    
+    function cn(...classes: string[]) {
+      return twMerge(clsx(classes))
+    }
+    
+    // Usage
+    <div className={cn(
+      'px-4 py-2',
+      isActive && 'bg-blue-500',
+      'hover:bg-blue-600'
+    )}>
+      Button
+    </div>
+    ```
+  </Tab>
+</Tabs>
+
+### HeroUI Components
+
+```tsx
+import { Button, Card, CardBody, CardHeader } from '@heroui/react'
+
+export function ProjectCard({ project }) {
+  return (
+    <Card>
+      <CardHeader>
+        <h3>{project.name}</h3>
+      </CardHeader>
+      <CardBody>
+        <p>{project.description}</p>
+        <Button color="primary">View Project</Button>
+      </CardBody>
+    </Card>
+  )
+}
+```
+
+## Authentication
+
+### NextAuth.js Setup
+
+<Steps>
+  <Step title="Configure Provider">
+    ```ts app/api/auth/[...nextauth]/route.ts
+    import NextAuth from 'next-auth'
+    import GithubProvider from 'next-auth/providers/github'
+    
+    const handler = NextAuth({
+      providers: [
+        GithubProvider({
+          clientId: process.env.GITHUB_ID!,
+          clientSecret: process.env.GITHUB_SECRET!,
+        }),
+      ],
+      callbacks: {
+        async session({ session, token }) {
+          // Add custom session data
+          return session
+        },
+      },
+    })
+    
+    export { handler as GET, handler as POST }
+    ```
+  </Step>
+  
+  <Step title="Session Provider">
+    ```tsx app/layout.tsx
+    import { SessionProvider } from 'next-auth/react'
+    
+    export default function RootLayout({ children }) {
+      return (
+        <html>
+          <body>
+            <SessionProvider>
+              {children}
+            </SessionProvider>
+          </body>
+        </html>
+      )
+    }
+    ```
+  </Step>
+  
+  <Step title="Use in Components">
+    ```tsx components/UserMenu.tsx
+    'use client'
+    
+    import { useSession, signIn, signOut } from 'next-auth/react'
+    
+    export function UserMenu() {
+      const { data: session } = useSession()
+      
+      if (!session) {
+        return <button onClick={() => signIn('github')}>Sign In</button>
+      }
+      
+      return (
+        <div>
+          <p>Welcome, {session.user?.name}</p>
+          <button onClick={() => signOut()}>Sign Out</button>
+        </div>
+      )
+    }
+    ```
+  </Step>
+</Steps>
+
+## Custom Hooks
+
+```tsx hooks/useProjects.ts
+import { useQuery } from '@apollo/client'
+import { GetProjectsDocument } from '@/app/projects/queries.generated'
+
+export function useProjects(limit = 10) {
+  const { data, loading, error } = useQuery(GetProjectsDocument, {
+    variables: { first: limit },
+  })
+  
+  return {
+    projects: data?.projects?.edges?.map(({ node }) => node) || [],
+    loading,
+    error,
+  }
+}
+```
+
+Usage:
+```tsx
+const { projects, loading } = useProjects()
+```
+
+## TypeScript
+
+### Type Definitions
+
+```ts types/project.ts
+export interface Project {
+  id: string
+  name: string
+  description: string
+  level: 'Lab' | 'Production' | 'Flagship'
+  type: 'Code' | 'Documentation' | 'Tool'
+  url: string
+  leaders: string[]
+}
+```
+
+### GraphQL Generated Types
+
+Generated from GraphQL schema:
+
+```bash
+pnpm run graphql-codegen
+```
+
+Produces:
+```ts
+export type Project = {
+  __typename?: 'ProjectNode'
+  id: Scalars['ID']
+  name: Scalars['String']
+  description: Scalars['String']
+  // ...
+}
+```
+
+## Testing
+
+See the [Testing Guide](/development/testing#frontend-tests) for comprehensive frontend testing documentation.
+
+<CodeGroup>
+```bash Unit Tests
+pnpm run test:unit
+```
+
+```bash A11y Tests
+pnpm run test:a11y
+```
+
+```bash E2E Tests
+pnpm run test:e2e
+```
+
+```bash All Tests
+make test-frontend
+```
+</CodeGroup>
+
+## Environment Variables
+
+Key variables in `frontend/.env`:
+
+```plaintext .env
+# API URLs
+NEXT_PUBLIC_API_URL=http://localhost:8000/
+NEXT_PUBLIC_GRAPHQL_URL=http://localhost:8000/graphql/
+NEXT_PUBLIC_CSRF_URL=http://localhost:8000/csrf/
+
+# Environment
+NEXT_PUBLIC_ENVIRONMENT=development
+NEXT_PUBLIC_RELEASE_VERSION=1.0.0
+
+# Auth
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=<secret>
+GITHUB_ID=<github-oauth-id>
+GITHUB_SECRET=<github-oauth-secret>
+
+# Analytics (optional)
+NEXT_PUBLIC_GTM_ID=GTM-XXXXXXX
+NEXT_PUBLIC_SENTRY_DSN=<sentry-dsn>
+
+# Search (optional)
+NEXT_PUBLIC_IDX_URL=http://localhost:8000/idx/
+```
+
+<Note>
+  Variables prefixed with `NEXT_PUBLIC_` are exposed to the browser.
+</Note>
+
+## Performance Optimization
+
+### Image Optimization
+
+```tsx
+import Image from 'next/image'
+
+<Image
+  src="/logo.png"
+  alt="OWASP Nest"
+  width={200}
+  height={50}
+  priority // Load immediately
+/>
+```
+
+### Code Splitting
+
+```tsx
+import dynamic from 'next/dynamic'
+
+const HeavyComponent = dynamic(() => import('@/components/HeavyComponent'), {
+  loading: () => <div>Loading...</div>,
+  ssr: false, // Client-side only
+})
+```
+
+### Memoization
+
+```tsx
+import { memo, useMemo } from 'react'
+
+export const ProjectCard = memo(({ project }) => {
+  const formattedDate = useMemo(
+    () => new Date(project.createdAt).toLocaleDateString(),
+    [project.createdAt]
+  )
+  
+  return <div>{formattedDate}</div>
+})
+```
+
+## Debugging
+
+### React DevTools
+
+Install the [React Developer Tools](https://react.dev/learn/react-developer-tools) browser extension.
+
+### Next.js Debug Mode
+
+```bash
+NODE_OPTIONS='--inspect' pnpm run dev
+```
+
+Then attach debugger in Chrome DevTools or VS Code.
+
+### Console Logging
+
+<Tabs>
+  <Tab title="Development">
+    ```tsx
+    console.log('Debug:', data)
+    console.error('Error:', error)
+    ```
+  </Tab>
+  
+  <Tab title="Production">
+    Use Sentry for production errors:
+    ```tsx
+    import * as Sentry from '@sentry/nextjs'
+    
+    Sentry.captureException(error)
+    ```
+  </Tab>
+</Tabs>
+
+## Build & Deployment
+
+### Production Build
+
+<Steps>
+  <Step title="Build">
+    ```bash
+    pnpm run build
+    ```
+
+    Creates optimized production build in `.next/` directory.
+  </Step>
+  
+  <Step title="Analyze Bundle">
+    ```bash
+    ANALYZE=true pnpm run build
+    ```
+
+    Opens bundle analyzer to identify large dependencies.
+  </Step>
+  
+  <Step title="Start Production Server">
+    ```bash
+    pnpm run start
+    ```
+  </Step>
+</Steps>
+
+### Docker Build
+
+```bash
+make build-frontend-local-image
+```
+
+Builds production Docker image for deployment.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Testing Guide" icon="vial" href="/development/testing">
+    Write and run frontend tests
+  </Card>
+  <Card title="Backend Development" icon="python" href="/development/backend">
+    Learn about Django backend
+  </Card>
+  <Card title="Components" icon="grid" href="/components">
+    Browse UI components
+  </Card>
+  <Card title="Contributing" icon="code-pull-request" href="/contributing">
+    Contribution guidelines
+  </Card>
+</CardGroup>

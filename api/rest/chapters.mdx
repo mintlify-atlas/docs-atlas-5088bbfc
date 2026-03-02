@@ -1,0 +1,314 @@
+---
+title: 'Chapters API'
+description: 'Retrieve OWASP chapters using the REST API'
+---
+
+## List Chapters
+
+<ParamField query="GET" path="/api/v0/chapters/">
+  Retrieve a paginated list of OWASP chapters.
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="country" type="string" optional>
+  Filter chapters by country name.
+  
+  Example: `United States`, `United Kingdom`, `India`
+</ParamField>
+
+<ParamField query="latitude_gte" type="float" optional>
+  Filter chapters with latitude greater than or equal to the specified value.
+  
+  Example: `40.0` (chapters at or above 40° North)
+</ParamField>
+
+<ParamField query="latitude_lte" type="float" optional>
+  Filter chapters with latitude less than or equal to the specified value.
+  
+  Example: `50.0` (chapters at or below 50° North)
+</ParamField>
+
+<ParamField query="longitude_gte" type="float" optional>
+  Filter chapters with longitude greater than or equal to the specified value.
+  
+  Example: `-10.0`
+</ParamField>
+
+<ParamField query="longitude_lte" type="float" optional>
+  Filter chapters with longitude less than or equal to the specified value.
+  
+  Example: `30.0`
+</ParamField>
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `updated_at` - Last update date (ascending)
+  - `-updated_at` - Last update date (descending)
+  - `latitude` - Latitude (ascending)
+  - `-latitude` - Latitude (descending)
+  - `longitude` - Longitude (ascending)
+  - `-longitude` - Longitude (descending)
+  
+  Default: `-created_at`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="items" type="array">
+  Array of chapter objects
+  
+  <Expandable title="Chapter Object">
+    <ResponseField name="created_at" type="datetime">
+      ISO 8601 timestamp when the chapter was created
+    </ResponseField>
+    
+    <ResponseField name="key" type="string">
+      Unique chapter identifier (nest_key)
+    </ResponseField>
+    
+    <ResponseField name="latitude" type="float" optional>
+      Geographic latitude of the chapter location
+    </ResponseField>
+    
+    <ResponseField name="longitude" type="float" optional>
+      Geographic longitude of the chapter location
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Chapter name
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="datetime">
+      ISO 8601 timestamp when the chapter was last updated
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="count" type="integer">
+  Total number of chapters matching the filter
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List all chapters
+    curl -X GET "https://nest.owasp.org/api/v0/chapters/"
+    
+    # Filter by country
+    curl -X GET "https://nest.owasp.org/api/v0/chapters/?country=United%20States"
+    
+    # Filter by geographic bounds (European region)
+    curl -X GET "https://nest.owasp.org/api/v0/chapters/?latitude_gte=35&latitude_lte=70&longitude_gte=-10&longitude_lte=40"
+    
+    # Sort by latitude (northernmost first)
+    curl -X GET "https://nest.owasp.org/api/v0/chapters/?ordering=-latitude"
+    
+    # Pagination
+    curl -X GET "https://nest.owasp.org/api/v0/chapters/?page=1&limit=20"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # List all chapters
+    response = requests.get("https://nest.owasp.org/api/v0/chapters/")
+    chapters = response.json()
+    
+    # Filter by country
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/chapters/",
+        params={"country": "United States"}
+    )
+    
+    # Filter by geographic bounds (European region)
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/chapters/",
+        params={
+            "latitude_gte": 35,
+            "latitude_lte": 70,
+            "longitude_gte": -10,
+            "longitude_lte": 40
+        }
+    )
+    
+    # Sort by latitude
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/chapters/",
+        params={"ordering": "-latitude"}
+    )
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // List all chapters
+    const response = await fetch('https://nest.owasp.org/api/v0/chapters/');
+    const chapters = await response.json();
+    
+    // Filter by country
+    const countryUrl = new URL('https://nest.owasp.org/api/v0/chapters/');
+    countryUrl.searchParams.set('country', 'United States');
+    const countryResponse = await fetch(countryUrl);
+    
+    // Filter by geographic bounds (European region)
+    const geoUrl = new URL('https://nest.owasp.org/api/v0/chapters/');
+    geoUrl.searchParams.set('latitude_gte', '35');
+    geoUrl.searchParams.set('latitude_lte', '70');
+    geoUrl.searchParams.set('longitude_gte', '-10');
+    geoUrl.searchParams.set('longitude_lte', '40');
+    const geoResponse = await fetch(geoUrl);
+    
+    // Sort by latitude
+    const sortedUrl = new URL('https://nest.owasp.org/api/v0/chapters/');
+    sortedUrl.searchParams.set('ordering', '-latitude');
+    const sortedResponse = await fetch(sortedUrl);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Chapter
+
+<ParamField query="GET" path="/api/v0/chapters/{chapter_id}">
+  Retrieve detailed information about a specific OWASP chapter.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="chapter_id" type="string" required>
+  Chapter identifier. Can be provided with or without the `www-chapter-` prefix.
+  
+  Examples:
+  - `London`
+  - `www-chapter-London`
+  - `New-York`
+  - `www-chapter-New-York`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="created_at" type="datetime">
+  ISO 8601 timestamp when the chapter was created
+</ResponseField>
+
+<ResponseField name="key" type="string">
+  Unique chapter identifier (nest_key)
+</ResponseField>
+
+<ResponseField name="latitude" type="float" optional>
+  Geographic latitude of the chapter location
+</ResponseField>
+
+<ResponseField name="longitude" type="float" optional>
+  Geographic longitude of the chapter location
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Chapter name
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  ISO 8601 timestamp when the chapter was last updated
+</ResponseField>
+
+<ResponseField name="country" type="string">
+  Country where the chapter is located
+</ResponseField>
+
+<ResponseField name="leaders" type="array">
+  Array of chapter leaders
+  
+  <Expandable title="Leader Object">
+    <ResponseField name="key" type="string" optional>
+      GitHub login/username of the leader (if available)
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Display name of the leader
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="region" type="string">
+  Geographic region of the chapter
+</ResponseField>
+
+### Error Responses
+
+<ResponseField name="404 Not Found" type="object">
+  <Expandable title="Error Schema">
+    <ResponseField name="message" type="string">
+      Error message: "Chapter not found"
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get chapter by key (without prefix)
+    curl -X GET "https://nest.owasp.org/api/v0/chapters/London"
+    
+    # Get chapter by key (with prefix)
+    curl -X GET "https://nest.owasp.org/api/v0/chapters/www-chapter-London"
+    
+    # Get New York chapter
+    curl -X GET "https://nest.owasp.org/api/v0/chapters/New-York"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # Get chapter details
+    chapter_id = "London"
+    response = requests.get(f"https://nest.owasp.org/api/v0/chapters/{chapter_id}")
+    
+    if response.status_code == 200:
+        chapter = response.json()
+        print(f"Name: {chapter['name']}")
+        print(f"Country: {chapter['country']}")
+        print(f"Region: {chapter['region']}")
+        print(f"Leaders: {[leader['name'] for leader in chapter['leaders']]}")
+    elif response.status_code == 404:
+        print("Chapter not found")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // Get chapter details
+    const chapterId = 'London';
+    const response = await fetch(`https://nest.owasp.org/api/v0/chapters/${chapterId}`);
+    
+    if (response.ok) {
+      const chapter = await response.json();
+      console.log(`Name: ${chapter.name}`);
+      console.log(`Country: ${chapter.country}`);
+      console.log(`Region: ${chapter.region}`);
+      console.log(`Leaders: ${chapter.leaders.map(l => l.name).join(', ')}`);
+    } else if (response.status === 404) {
+      console.log('Chapter not found');
+    }
+    ```
+  </Tab>
+</Tabs>

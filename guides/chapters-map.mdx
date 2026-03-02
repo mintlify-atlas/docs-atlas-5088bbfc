@@ -1,0 +1,461 @@
+---
+title: Using the Chapters Map
+description: Explore OWASP chapters worldwide with the interactive proximity map
+icon: map
+---
+
+The OWASP Nest chapters map helps you discover local OWASP chapters near you. This guide explains how to use the interactive map and find chapters based on your location.
+
+## Overview
+
+The chapters map provides:
+
+<CardGroup cols={2}>
+  <Card title="Interactive Map" icon="map-location-dot">
+    Pan, zoom, and explore chapters worldwide
+  </Card>
+  <Card title="Location-Based Search" icon="location-crosshairs">
+    Find chapters near you by sharing your location
+  </Card>
+  <Card title="Clustering" icon="layer-group">
+    Grouped markers for better visualization
+  </Card>
+  <Card title="Chapter Details" icon="circle-info">
+    Click markers to see chapter information
+  </Card>
+</CardGroup>
+
+## Accessing the Map
+
+The chapters map is available at:
+
+```
+https://nest.owasp.org/chapters
+```
+
+## Using the Interactive Map
+
+<Steps>
+  <Step title="Unlock the Map">
+    Click the unlock button in the center to enable interaction.
+    
+    <Note>
+      The map is locked by default to prevent accidental scrolling while browsing the page.
+    </Note>
+  </Step>
+  
+  <Step title="Navigate the Map">
+    Once unlocked, you can pan (click and drag), zoom (use +/- buttons or scroll wheel), or double-click to zoom in on a specific area.
+  </Step>
+  
+  <Step title="View Chapter Details">
+    Click any marker to see the chapter name, link to chapter page, and location information.
+  </Step>
+  
+  <Step title="Lock the Map">
+    Click outside the map or press Escape to lock it again.
+  </Step>
+</Steps>
+
+## Finding Nearby Chapters
+
+Use location sharing to find chapters near you:
+
+<Steps>
+  <Step title="Enable Map Interaction">
+    Click the unlock button to activate the map controls.
+  </Step>
+  
+  <Step title="Share Your Location">
+    Click the location icon in the top-left corner of the map.
+    
+    Your browser will prompt you to allow location access.
+  </Step>
+  
+  <Step title="View Nearby Chapters">
+    Once you share your location, your position appears as a green marker, the map zooms to show nearby chapters, and the closest 5 chapters are highlighted.
+  </Step>
+  
+  <Step title="Reset Location Filter">
+    Click the location icon again to reset and view all chapters.
+  </Step>
+</Steps>
+
+<Warning>
+  Location data is only used in your browser and is never sent to the server.
+</Warning>
+
+## Map Controls
+
+### Zoom Controls
+
+- **+ Button**: Zoom in
+- **- Button**: Zoom out
+- **Scroll Wheel**: Zoom in/out (when unlocked)
+- **Double-click**: Zoom to specific area
+
+### Location Control
+
+- **📍 Icon**: Share location or reset filter
+- **Tooltip**: Shows current state (Share location or Reset location filter)
+
+### Keyboard Controls
+
+| Key | Action |
+|-----|--------|
+| `Escape` | Lock the map |
+| `+` | Zoom in |
+| `-` | Zoom out |
+| Arrow keys | Pan the map |
+
+## Marker Clustering
+
+The map uses clustering to organize markers:
+
+### How Clustering Works
+
+<Steps>
+  <Step title="Zoomed Out View">
+    When zoomed out, nearby chapters are grouped into numbered clusters showing how many chapters are in that area.
+  </Step>
+  
+  <Step title="Intermediate Zoom">
+    As you zoom in, clusters break apart into smaller groups.
+  </Step>
+  
+  <Step title="Zoomed In View">
+    When fully zoomed in, individual chapter markers appear.
+  </Step>
+</Steps>
+
+### Interacting with Clusters
+
+- **Click a cluster**: Zoom in to see individual chapters
+- **Hover over cluster**: See the number of chapters in that area
+
+## Chapter Information
+
+Each chapter marker provides:
+
+<ResponseField name="name" type="string">
+  Official chapter name (e.g., OWASP London)
+</ResponseField>
+
+<ResponseField name="location" type="coordinates">
+  Latitude and longitude coordinates
+</ResponseField>
+
+<ResponseField name="country" type="string">
+  Chapter country
+</ResponseField>
+
+<ResponseField name="region" type="string">
+  Geographic region
+</ResponseField>
+
+<ResponseField name="leaders" type="array">
+  List of chapter leaders
+</ResponseField>
+
+## Using Chapter Data via API
+
+You can also access chapter location data programmatically:
+
+### List All Chapters
+
+```bash
+GET /api/v0/chapters/
+```
+
+**Response includes:**
+
+```json
+{
+  "results": [
+    {
+      "key": "www-chapter-london",
+      "name": "OWASP London",
+      "latitude": 51.5074,
+      "longitude": -0.1278,
+      "created_at": "2020-01-15T10:30:00Z",
+      "updated_at": "2024-01-16T14:20:00Z"
+    }
+  ]
+}
+```
+
+### Get Chapter Details
+
+```bash
+GET /api/v0/chapters/{chapter_id}
+```
+
+**Example:**
+
+```bash
+curl "https://nest.owasp.org/api/v0/chapters/London"
+```
+
+**Response:**
+
+```json
+{
+  "key": "www-chapter-london",
+  "name": "OWASP London",
+  "latitude": 51.5074,
+  "longitude": -0.1278,
+  "country": "United Kingdom",
+  "region": "Europe",
+  "leaders": [
+    {
+      "key": "johndoe",
+      "name": "John Doe"
+    }
+  ],
+  "created_at": "2020-01-15T10:30:00Z",
+  "updated_at": "2024-01-16T14:20:00Z"
+}
+```
+
+## Filtering Chapters by Location
+
+Use the API to find chapters by geographic area:
+
+### Filter by Country
+
+```bash
+curl "https://nest.owasp.org/api/v0/chapters/?country=United+Kingdom"
+```
+
+### Filter by Proximity (Custom Implementation)
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import requests
+    from math import radians, sin, cos, sqrt, atan2
+    
+    def haversine_distance(lat1, lon1, lat2, lon2):
+        """Calculate distance between two points in kilometers."""
+        R = 6371  # Earth's radius in km
+        
+        dlat = radians(lat2 - lat1)
+        dlon = radians(lon2 - lon1)
+        a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1-a))
+        
+        return R * c
+    
+    def find_nearby_chapters(my_lat, my_lon, max_distance_km=100):
+        # Get all chapters
+        response = requests.get("https://nest.owasp.org/api/v0/chapters/")
+        chapters = response.json()["results"]
+        
+        # Filter by distance
+        nearby = []
+        for chapter in chapters:
+            if chapter["latitude"] and chapter["longitude"]:
+                distance = haversine_distance(
+                    my_lat, my_lon,
+                    chapter["latitude"], chapter["longitude"]
+                )
+                if distance <= max_distance_km:
+                    chapter["distance_km"] = round(distance, 2)
+                    nearby.append(chapter)
+        
+        # Sort by distance
+        nearby.sort(key=lambda x: x["distance_km"])
+        return nearby
+    
+    # Find chapters within 100km of London
+    nearby_chapters = find_nearby_chapters(51.5074, -0.1278, 100)
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    function haversineDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+    
+    async function findNearbyChapters(myLat, myLon, maxDistanceKm = 100) {
+      // Get all chapters
+      const response = await fetch('https://nest.owasp.org/api/v0/chapters/');
+      const data = await response.json();
+      const chapters = data.results;
+      
+      // Filter by distance
+      const nearby = chapters
+        .filter(chapter => chapter.latitude && chapter.longitude)
+        .map(chapter => ({
+          ...chapter,
+          distance_km: haversineDistance(
+            myLat, myLon,
+            chapter.latitude, chapter.longitude
+          )
+        }))
+        .filter(chapter => chapter.distance_km <= maxDistanceKm)
+        .sort((a, b) => a.distance_km - b.distance_km);
+      
+      return nearby;
+    }
+    
+    // Find chapters within 100km of London
+    const nearbyChapters = await findNearbyChapters(51.5074, -0.1278, 100);
+    ```
+  </Tab>
+</Tabs>
+
+## Map Technology
+
+The chapters map uses:
+
+- **OpenStreetMap**: Base map tiles
+- **Leaflet**: Interactive mapping library
+- **React Leaflet**: React integration
+- **MarkerClusterGroup**: Marker clustering
+
+### Map Configuration
+
+```typescript
+// Map bounds
+minZoom: 1
+maxZoom: 18
+center: [20, 0]  // Default center
+
+// World bounds
+maxBounds: [
+  [-85, -180],  // Southwest corner
+  [85, 180]     // Northeast corner
+]
+```
+
+## Accessibility Features
+
+<CardGroup cols={2}>
+  <Card title="Keyboard Navigation" icon="keyboard">
+    Full keyboard support for all controls
+  </Card>
+  <Card title="Screen Readers" icon="ear-listen">
+    ARIA labels and semantic HTML
+  </Card>
+  <Card title="Focus Management" icon="bullseye">
+    Visible focus indicators
+  </Card>
+  <Card title="Alternative Navigation" icon="list">
+    List view available for chapter browsing
+  </Card>
+</CardGroup>
+
+## Privacy and Location Data
+
+<AccordionGroup>
+  <Accordion title="How Location is Used">
+    When you share your location:
+    1. Your browser provides coordinates to JavaScript
+    2. Coordinates are used only to calculate distances
+    3. **No data is sent to the server**
+    4. **No data is stored in cookies or localStorage**
+    5. Data is cleared when you refresh the page
+  </Accordion>
+  
+  <Accordion title="Browser Permissions">
+    Your browser will ask for permission before sharing location:
+    - **Allow**: Map centers on your location
+    - **Deny**: Map continues to work without location features
+    - You can revoke permission in browser settings
+  </Accordion>
+  
+  <Accordion title="No Tracking">
+    OWASP Nest does not:
+    - Track your location
+    - Store location history
+    - Share location with third parties
+    - Require location to use the site
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Map doesn't load">
+    **Possible causes:**
+    - Ad blocker blocking OpenStreetMap
+    - JavaScript disabled
+    - Network connectivity issues
+    
+    **Solutions:**
+    - Disable ad blocker for nest.owasp.org
+    - Enable JavaScript
+    - Check browser console for errors
+  </Accordion>
+  
+  <Accordion title="Location sharing doesn't work">
+    **Possible causes:**
+    - Browser permissions denied
+    - HTTPS required for geolocation
+    - Browser doesn't support geolocation
+    
+    **Solutions:**
+    - Check browser location settings
+    - Ensure you're using HTTPS
+    - Try a modern browser (Chrome, Firefox, Safari, Edge)
+  </Accordion>
+  
+  <Accordion title="Markers not clustering">
+    **Possible causes:**
+    - Zoomed in too far
+    - JavaScript error
+    
+    **Solutions:**
+    - Zoom out to see clustering
+    - Refresh the page
+    - Check browser console
+  </Accordion>
+  
+  <Accordion title="Map is slow or laggy">
+    **Possible causes:**
+    - Many chapters in view
+    - Low-end device
+    - Browser extensions
+    
+    **Solutions:**
+    - Zoom in to reduce visible markers
+    - Close other browser tabs
+    - Disable unnecessary extensions
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Tip>
+  **Finding Local Chapters**
+  1. Unlock the map
+  2. Share your location
+  3. Click the nearest marker
+  4. Visit the chapter page to learn more
+</Tip>
+
+<Tip>
+  **Exploring Globally**
+  1. Zoom out to see all continents
+  2. Click cluster markers to zoom in
+  3. Pan to different regions
+  4. Use the list view for systematic browsing
+</Tip>
+
+<Tip>
+  **Performance**
+  - Lock the map when not actively using it
+  - Zoom in to reduce the number of visible markers
+  - Use the list view for browsing many chapters
+</Tip>

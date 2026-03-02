@@ -1,0 +1,284 @@
+---
+title: 'Projects API'
+description: 'Retrieve OWASP projects using the REST API'
+---
+
+## List Projects
+
+<ParamField query="GET" path="/api/v0/projects/">
+  Retrieve a paginated list of OWASP projects.
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="level" type="string" optional>
+  Filter by project level. Available values:
+  - `flagship` - Flagship projects
+  - `production` - Production projects
+  - `lab` - Lab projects
+  - `incubator` - Incubator projects
+  - `other` - Other projects
+</ParamField>
+
+<ParamField query="q" type="string" optional>
+  Structured search query supporting field-based filtering. Examples:
+  - `name:security` - Search for projects with "security" in the name
+  - `stars:>100` - Projects with more than 100 stars
+  - `name:owasp stars:>50` - Combined search
+  
+  Available fields:
+  - `name` - Project name (case-insensitive contains)
+  - `stars` - Number of stars (supports `>`, `<`, `>=`, `<=`, `=`)
+</ParamField>
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `updated_at` - Last update date (ascending)
+  - `-updated_at` - Last update date (descending)
+  
+  Default: `-level_raw,-stars_count,-forks_count`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="items" type="array">
+  Array of project objects
+  
+  <Expandable title="Project Object">
+    <ResponseField name="created_at" type="datetime">
+      ISO 8601 timestamp when the project was created
+    </ResponseField>
+    
+    <ResponseField name="key" type="string">
+      Unique project identifier (nest_key)
+    </ResponseField>
+    
+    <ResponseField name="level" type="string">
+      Project level: `flagship`, `production`, `lab`, `incubator`, or `other`
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Project name
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="datetime">
+      ISO 8601 timestamp when the project was last updated
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="count" type="integer">
+  Total number of projects matching the filter
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List all projects
+    curl -X GET "https://nest.owasp.org/api/v0/projects/"
+    
+    # Filter by flagship level
+    curl -X GET "https://nest.owasp.org/api/v0/projects/?level=flagship"
+    
+    # Search for projects with "security" in the name
+    curl -X GET "https://nest.owasp.org/api/v0/projects/?q=name:security"
+    
+    # Get projects with more than 100 stars
+    curl -X GET "https://nest.owasp.org/api/v0/projects/?q=stars:>100"
+    
+    # Sort by creation date (newest first) with pagination
+    curl -X GET "https://nest.owasp.org/api/v0/projects/?ordering=-created_at&page=1&limit=20"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # List all projects
+    response = requests.get("https://nest.owasp.org/api/v0/projects/")
+    projects = response.json()
+    
+    # Filter by flagship level
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/projects/",
+        params={"level": "flagship"}
+    )
+    
+    # Search with structured query
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/projects/",
+        params={"q": "name:security stars:>50"}
+    )
+    
+    # Pagination
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/projects/",
+        params={
+            "ordering": "-created_at",
+            "page": 1,
+            "limit": 20
+        }
+    )
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // List all projects
+    const response = await fetch('https://nest.owasp.org/api/v0/projects/');
+    const projects = await response.json();
+    
+    // Filter by flagship level
+    const flagshipUrl = new URL('https://nest.owasp.org/api/v0/projects/');
+    flagshipUrl.searchParams.set('level', 'flagship');
+    const flagshipResponse = await fetch(flagshipUrl);
+    
+    // Search with structured query
+    const searchUrl = new URL('https://nest.owasp.org/api/v0/projects/');
+    searchUrl.searchParams.set('q', 'name:security stars:>50');
+    const searchResponse = await fetch(searchUrl);
+    
+    // Pagination
+    const paginatedUrl = new URL('https://nest.owasp.org/api/v0/projects/');
+    paginatedUrl.searchParams.set('ordering', '-created_at');
+    paginatedUrl.searchParams.set('page', '1');
+    paginatedUrl.searchParams.set('limit', '20');
+    const paginatedResponse = await fetch(paginatedUrl);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Project
+
+<ParamField query="GET" path="/api/v0/projects/{project_id}">
+  Retrieve detailed information about a specific OWASP project.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="project_id" type="string" required>
+  Project identifier. Can be provided with or without the `www-project-` prefix.
+  
+  Examples:
+  - `Nest`
+  - `www-project-Nest`
+  - `Top-Ten`
+  - `www-project-Top-Ten`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="created_at" type="datetime">
+  ISO 8601 timestamp when the project was created
+</ResponseField>
+
+<ResponseField name="key" type="string">
+  Unique project identifier (nest_key)
+</ResponseField>
+
+<ResponseField name="level" type="string">
+  Project level: `flagship`, `production`, `lab`, `incubator`, or `other`
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Project name
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  ISO 8601 timestamp when the project was last updated
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Project description
+</ResponseField>
+
+<ResponseField name="leaders" type="array">
+  Array of project leaders
+  
+  <Expandable title="Leader Object">
+    <ResponseField name="key" type="string" optional>
+      GitHub login/username of the leader (if available)
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Display name of the leader
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Error Responses
+
+<ResponseField name="404 Not Found" type="object">
+  <Expandable title="Error Schema">
+    <ResponseField name="message" type="string">
+      Error message: "Project not found"
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get project by key (without prefix)
+    curl -X GET "https://nest.owasp.org/api/v0/projects/Nest"
+    
+    # Get project by key (with prefix)
+    curl -X GET "https://nest.owasp.org/api/v0/projects/www-project-Nest"
+    
+    # Get OWASP Top Ten project
+    curl -X GET "https://nest.owasp.org/api/v0/projects/Top-Ten"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # Get project details
+    project_id = "Nest"
+    response = requests.get(f"https://nest.owasp.org/api/v0/projects/{project_id}")
+    
+    if response.status_code == 200:
+        project = response.json()
+        print(f"Name: {project['name']}")
+        print(f"Level: {project['level']}")
+        print(f"Leaders: {[leader['name'] for leader in project['leaders']]}")
+    elif response.status_code == 404:
+        print("Project not found")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // Get project details
+    const projectId = 'Nest';
+    const response = await fetch(`https://nest.owasp.org/api/v0/projects/${projectId}`);
+    
+    if (response.ok) {
+      const project = await response.json();
+      console.log(`Name: ${project.name}`);
+      console.log(`Level: ${project.level}`);
+      console.log(`Leaders: ${project.leaders.map(l => l.name).join(', ')}`);
+    } else if (response.status === 404) {
+      console.log('Project not found');
+    }
+    ```
+  </Tab>
+</Tabs>

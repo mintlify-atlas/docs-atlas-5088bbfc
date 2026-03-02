@@ -1,0 +1,284 @@
+---
+title: 'Repositories API'
+description: 'Retrieve GitHub repositories using the REST API'
+---
+
+## List Repositories
+
+<ParamField query="GET" path="/api/v0/repositories/">
+  Retrieve a paginated list of GitHub repositories.
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="organization_id" type="string" optional>
+  Filter repositories by organization login/username.
+  
+  Example: `OWASP`
+</ParamField>
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `updated_at` - Last update date (ascending)
+  - `-updated_at` - Last update date (descending)
+  
+  Default: `-created_at,-updated_at`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="items" type="array">
+  Array of repository objects
+  
+  <Expandable title="Repository Object">
+    <ResponseField name="created_at" type="datetime">
+      ISO 8601 timestamp when the repository was created
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Repository name
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="datetime">
+      ISO 8601 timestamp when the repository was last updated
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="count" type="integer">
+  Total number of repositories matching the filter
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List all repositories
+    curl -X GET "https://nest.owasp.org/api/v0/repositories/"
+    
+    # Filter by organization
+    curl -X GET "https://nest.owasp.org/api/v0/repositories/?organization_id=OWASP"
+    
+    # Sort by creation date (newest first)
+    curl -X GET "https://nest.owasp.org/api/v0/repositories/?ordering=-created_at"
+    
+    # Sort by update date (most recently updated first)
+    curl -X GET "https://nest.owasp.org/api/v0/repositories/?ordering=-updated_at"
+    
+    # Pagination with organization filter
+    curl -X GET "https://nest.owasp.org/api/v0/repositories/?organization_id=OWASP&page=1&limit=20"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # List all repositories
+    response = requests.get("https://nest.owasp.org/api/v0/repositories/")
+    repositories = response.json()
+    
+    # Filter by organization
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/repositories/",
+        params={"organization_id": "OWASP"}
+    )
+    
+    # Sort by creation date (newest first)
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/repositories/",
+        params={"ordering": "-created_at"}
+    )
+    
+    # Pagination
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/repositories/",
+        params={
+            "organization_id": "OWASP",
+            "page": 1,
+            "limit": 20
+        }
+    )
+    
+    # Print repository names
+    for repo in repositories['items']:
+        print(f"{repo['name']} (created: {repo['created_at']})")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // List all repositories
+    const response = await fetch('https://nest.owasp.org/api/v0/repositories/');
+    const repositories = await response.json();
+    
+    // Filter by organization
+    const orgUrl = new URL('https://nest.owasp.org/api/v0/repositories/');
+    orgUrl.searchParams.set('organization_id', 'OWASP');
+    const orgResponse = await fetch(orgUrl);
+    
+    // Sort by creation date (newest first)
+    const sortedUrl = new URL('https://nest.owasp.org/api/v0/repositories/');
+    sortedUrl.searchParams.set('ordering', '-created_at');
+    const sortedResponse = await fetch(sortedUrl);
+    
+    // Pagination
+    const paginatedUrl = new URL('https://nest.owasp.org/api/v0/repositories/');
+    paginatedUrl.searchParams.set('organization_id', 'OWASP');
+    paginatedUrl.searchParams.set('page', '1');
+    paginatedUrl.searchParams.set('limit', '20');
+    const paginatedResponse = await fetch(paginatedUrl);
+    
+    // Print repository names
+    repositories.items.forEach(repo => {
+      console.log(`${repo.name} (created: ${repo.created_at})`);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Repository
+
+<ParamField query="GET" path="/api/v0/repositories/{organization_id}/{repository_id}">
+  Retrieve detailed information about a specific GitHub repository.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="organization_id" type="string" required>
+  Organization login/username that owns the repository.
+  
+  Example: `OWASP`
+</ParamField>
+
+<ParamField path="repository_id" type="string" required>
+  Repository name.
+  
+  Example: `Nest`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="created_at" type="datetime">
+  ISO 8601 timestamp when the repository was created
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Repository name
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  ISO 8601 timestamp when the repository was last updated
+</ResponseField>
+
+<ResponseField name="commits_count" type="integer">
+  Total number of commits in the repository
+</ResponseField>
+
+<ResponseField name="contributors_count" type="integer">
+  Number of contributors to the repository
+</ResponseField>
+
+<ResponseField name="description" type="string" optional>
+  Repository description
+</ResponseField>
+
+<ResponseField name="forks_count" type="integer">
+  Number of repository forks
+</ResponseField>
+
+<ResponseField name="open_issues_count" type="integer">
+  Number of open issues
+</ResponseField>
+
+<ResponseField name="stars_count" type="integer">
+  Number of repository stars
+</ResponseField>
+
+### Error Responses
+
+<ResponseField name="404 Not Found" type="object">
+  <Expandable title="Error Schema">
+    <ResponseField name="message" type="string">
+      Error message: "Repository not found"
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get repository by organization and name
+    curl -X GET "https://nest.owasp.org/api/v0/repositories/OWASP/Nest"
+    
+    # Get another repository
+    curl -X GET "https://nest.owasp.org/api/v0/repositories/OWASP/Top10"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # Get repository details
+    organization = "OWASP"
+    repository = "Nest"
+    
+    response = requests.get(
+        f"https://nest.owasp.org/api/v0/repositories/{organization}/{repository}"
+    )
+    
+    if response.status_code == 200:
+        repo = response.json()
+        print(f"Name: {repo['name']}")
+        print(f"Description: {repo.get('description', 'N/A')}")
+        print(f"Stars: {repo['stars_count']}")
+        print(f"Forks: {repo['forks_count']}")
+        print(f"Open Issues: {repo['open_issues_count']}")
+        print(f"Contributors: {repo['contributors_count']}")
+        print(f"Commits: {repo['commits_count']}")
+    elif response.status_code == 404:
+        print("Repository not found")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // Get repository details
+    const organization = 'OWASP';
+    const repository = 'Nest';
+    
+    const response = await fetch(
+      `https://nest.owasp.org/api/v0/repositories/${organization}/${repository}`
+    );
+    
+    if (response.ok) {
+      const repo = await response.json();
+      console.log(`Name: ${repo.name}`);
+      console.log(`Description: ${repo.description || 'N/A'}`);
+      console.log(`Stars: ${repo.stars_count}`);
+      console.log(`Forks: ${repo.forks_count}`);
+      console.log(`Open Issues: ${repo.open_issues_count}`);
+      console.log(`Contributors: ${repo.contributors_count}`);
+      console.log(`Commits: ${repo.commits_count}`);
+    } else if (response.status === 404) {
+      console.log('Repository not found');
+    }
+    ```
+  </Tab>
+</Tabs>

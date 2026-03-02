@@ -1,0 +1,511 @@
+---
+title: AI-Powered Insights
+description: Intelligent search and recommendations using agentic RAG and vector embeddings
+---
+
+## Overview
+
+OWASP Nest uses advanced AI to provide intelligent search, contextual recommendations, and automated insights across projects, chapters, events, and community resources.
+
+## Architecture
+
+The AI system is built on three core components:
+
+<CardGroup cols={3}>
+  <Card title="Agentic RAG" icon="robot">
+    Self-correcting retrieval with iterative refinement
+  </Card>
+  <Card title="Vector Embeddings" icon="diagram-project">
+    Semantic search with pgvector and OpenAI embeddings
+  </Card>
+  <Card title="Content Extraction" icon="file-export">
+    Structured extraction from OWASP entities
+  </Card>
+</CardGroup>
+
+## AI Models
+
+### Chunk Model
+
+Text chunks with vector embeddings for semantic search:
+
+```python
+# backend/apps/ai/models/chunk.py:12
+class Chunk(TimestampedModel):
+    """AI Chunk model for storing text chunks with embeddings."""
+    
+    context = models.ForeignKey(Context, on_delete=models.CASCADE, related_name="chunks")
+    embedding = VectorField(verbose_name="Embedding", dimensions=1536)
+    text = models.TextField(verbose_name="Text")
+```
+
+**Features:**
+- 1536-dimensional embeddings (OpenAI text-embedding-3-small)
+- PostgreSQL pgvector for similarity search
+- Linked to parent context entities
+- Unique constraint on (context, text)
+
+### Context Model
+
+Generated context for OWASP entities:
+
+```python
+# backend/apps/ai/models/context.py:15
+class Context(TimestampedModel):
+    """Context model for storing generated text related to OWASP entities."""
+    
+    content = models.TextField(verbose_name="Generated Text")
+    entity_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    entity_id = models.PositiveIntegerField()
+    entity = GenericForeignKey("entity_type", "entity_id")
+    source = models.CharField(max_length=100, blank=True, default="")
+```
+
+**Features:**
+- Generic foreign key to any entity type
+- Multiple contexts per entity (different sources)
+- Automatic chunking into searchable pieces
+- Unique constraint on (entity_type, entity_id, source)
+
+## Content Extraction
+
+Each entity type has a specialized extractor:
+
+### Project Extractor
+
+```python
+# backend/apps/ai/common/extractors/project.py:6
+def extract_project_content(project) -> tuple[str, str]:
+    """Extract structured content from project data.
+    
+    Returns:
+        tuple[str, str]: (prose_content, metadata_content)
+    """
+```
+
+**Extracted Fields:**
+
+**Prose Content:**
+- Project description
+- AI-generated summary
+- Repository description
+- Repository topics
+
+**Metadata Content:**
+- Project name and key
+- Project level and type
+- Programming languages
+- Topics, tags, custom tags
+- Licenses
+- Statistics (stars, forks, contributors, releases, issues)
+- Project leaders
+- Related URLs
+- Timestamps (created, updated, released)
+- Health score
+- Active status
+
+### Chapter Extractor
+
+```python
+# backend/apps/ai/common/extractors/chapter.py
+```
+
+Extracts:
+- Chapter name and location
+- Country, region, postal code
+- Meetup group information
+- Leader information
+- Geographic coordinates
+- Activity statistics
+
+### Event Extractor
+
+```python
+# backend/apps/ai/common/extractors/event.py
+```
+
+Extracts:
+- Event name and description
+- Event category
+- Start and end dates
+- Location information
+- Registration URL
+- AI-generated summary
+
+### Committee Extractor
+
+```python
+# backend/apps/ai/common/extractors/committee.py
+```
+
+Extracts:
+- Committee name and purpose
+- Leadership information
+- Activity and deliverables
+
+### Repository Extractor
+
+```python
+# backend/apps/ai/common/extractors/repository.py
+```
+
+Extracts:
+- Repository metadata
+- Issue and PR information
+- Contributor statistics
+- Topics and languages
+
+## Text Chunking
+
+Content is split into searchable chunks:
+
+```python
+# backend/apps/ai/models/chunk.py:37
+@staticmethod
+def split_text(text: str) -> list[str]:
+    """Split text into chunks."""
+    return RecursiveCharacterTextSplitter(
+        chunk_size=200,
+        chunk_overlap=20,
+        length_function=len,
+        separators=["\n\n", "\n", " ", ""],
+    ).split_text(text)
+```
+
+**Configuration:**
+- Chunk size: 200 characters
+- Chunk overlap: 20 characters
+- Separators: paragraph > line > space > character
+
+<Note>
+  Chunk overlap ensures important information isn't split across boundaries.
+</Note>
+
+## Agentic RAG
+
+The Agentic RAG system provides self-correcting question answering:
+
+```python
+# backend/apps/ai/agent/agent.py:19
+class AgenticRAGAgent:
+    """LangGraph-based controller for agentic RAG with self-correcting retrieval."""
+```
+
+### Workflow
+
+<Steps>
+  <Step title="Retrieve">
+    Search vector database for relevant chunks
+  </Step>
+  <Step title="Generate">
+    Generate answer using retrieved context
+  </Step>
+  <Step title="Evaluate">
+    Assess answer quality and relevance
+  </Step>
+  <Step title="Refine or Complete">
+    Either refine with feedback or return final answer
+  </Step>
+</Steps>
+
+### Agent Nodes
+
+```python
+# backend/apps/ai/agent/nodes.py
+class AgentNodes:
+    def retrieve(self, state: dict) -> dict:
+        """Retrieve relevant chunks from vector database."""
+    
+    def generate(self, state: dict) -> dict:
+        """Generate answer using retrieved context."""
+    
+    def evaluate(self, state: dict) -> dict:
+        """Evaluate answer quality."""
+    
+    def route_from_evaluation(self, state: dict) -> str:
+        """Route to refine or complete based on evaluation."""
+```
+
+### Retrieval Configuration
+
+```python
+# backend/apps/ai/common/constants.py
+DEFAULT_CHUNKS_RETRIEVAL_LIMIT = 10
+DEFAULT_SIMILARITY_THRESHOLD = 0.7
+```
+
+**Parameters:**
+- `limit` - Number of chunks to retrieve (default: 10)
+- `similarity_threshold` - Minimum cosine similarity (default: 0.7)
+- `content_types` - Filter by entity types
+
+### State Management
+
+Agent state tracks:
+
+```python
+initial_state = {
+    "query": query,
+    "iteration": 0,
+    "feedback": None,
+    "history": [],
+    "content_types": [],
+    "limit": DEFAULT_CHUNKS_RETRIEVAL_LIMIT,
+    "similarity_threshold": DEFAULT_SIMILARITY_THRESHOLD,
+}
+```
+
+### Response Format
+
+```python
+result = agent.run(query="What is OWASP ZAP?")
+# {
+#     "answer": "...",
+#     "iterations": 2,
+#     "evaluation": {...},
+#     "context_chunks": [...],
+#     "history": [...],
+#     "extracted_metadata": {...}
+# }
+```
+
+## Question Detection
+
+The AI system includes question classification:
+
+```python
+# backend/apps/slack/common/handlers/ai.py:42
+question_detector = QuestionDetector()
+if not question_detector.is_owasp_question(text=query):
+    return get_default_response()
+```
+
+**Filters:**
+- Non-question statements
+- Off-topic queries
+- Spam or abuse
+
+## Vector Search
+
+Similarity search using pgvector:
+
+```python
+# Cosine similarity search
+from pgvector.django import CosineDistance
+
+Chunk.objects.annotate(
+    distance=CosineDistance('embedding', query_embedding)
+).filter(
+    distance__lt=1.0 - similarity_threshold
+).order_by('distance')[:limit]
+```
+
+## Management Commands
+
+AI system maintenance commands:
+
+### Update Chunks
+
+```bash
+# Update chunks for all projects
+python manage.py ai_update_project_chunks
+
+# Update chunks for all chapters
+python manage.py ai_update_chapter_chunks
+
+# Update chunks for all events
+python manage.py ai_update_event_chunks
+
+# Update chunks for all committees
+python manage.py ai_update_committee_chunks
+
+# Update chunks for all repositories
+python manage.py ai_update_repository_chunks
+
+# Update chunks for Slack messages
+python manage.py ai_update_slack_message_chunks
+```
+
+### Update Context
+
+```bash
+# Generate context for all projects
+python manage.py ai_update_project_context
+
+# Generate context for all chapters
+python manage.py ai_update_chapter_context
+
+# Generate context for all events
+python manage.py ai_update_event_context
+```
+
+### Run Agent
+
+```bash
+# Test the agentic RAG system
+python manage.py ai_run_agentic_rag "What are OWASP flagship projects?"
+```
+
+## Embeddings Pipeline
+
+<Steps>
+  <Step title="Extract Content">
+    Use entity-specific extractors to generate text
+  </Step>
+  <Step title="Create Context">
+    Store extracted content in Context model
+  </Step>
+  <Step title="Chunk Text">
+    Split content into 200-char chunks with overlap
+  </Step>
+  <Step title="Generate Embeddings">
+    Create 1536-dim vectors using OpenAI API
+  </Step>
+  <Step title="Store Chunks">
+    Save chunks with embeddings to database
+  </Step>
+</Steps>
+
+## RAG Tools
+
+The agent uses specialized tools:
+
+```
+backend/apps/ai/agent/tools/rag/
+```
+
+### Retriever
+
+```python
+# backend/apps/ai/agent/tools/rag/retriever.py
+```
+
+Retrieves relevant chunks using:
+- Vector similarity search
+- Metadata filtering
+- Content type filtering
+- Similarity threshold
+
+### Generator
+
+```python
+# backend/apps/ai/agent/tools/rag/generator.py
+```
+
+Generates answers using:
+- Retrieved context chunks
+- Query understanding
+- Answer synthesis
+- Citation of sources
+
+## AI Configuration
+
+### Environment Variables
+
+```bash
+OPENAI_API_KEY=sk-...              # OpenAI API key
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+OPENAI_CHAT_MODEL=gpt-4-turbo
+AI_CHUNKS_RETRIEVAL_LIMIT=10
+AI_SIMILARITY_THRESHOLD=0.7
+```
+
+### Database Settings
+
+```python
+# PostgreSQL with pgvector extension
+INSTALLED_APPS = [
+    ...,
+    'pgvector',
+    'apps.ai',
+]
+
+# Create extension
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+## Performance Considerations
+
+<Card title="Indexing" icon="bolt">
+  Vector columns use HNSW (Hierarchical Navigable Small World) indexes for fast approximate nearest neighbor search.
+</Card>
+
+<Card title="Caching" icon="database">
+  Frequently accessed embeddings are cached in Redis to reduce API calls.
+</Card>
+
+<Card title="Batch Processing" icon="layer-group">
+  Chunk updates process entities in batches to avoid rate limits.
+</Card>
+
+## Usage Examples
+
+### Programmatic Access
+
+```python
+from apps.ai.agent.agent import AgenticRAGAgent
+
+# Initialize agent
+agent = AgenticRAGAgent()
+
+# Run query
+result = agent.run(query="What is the OWASP Top 10?")
+
+print(result["answer"])
+print(f"Iterations: {result['iterations']}")
+print(f"Context chunks: {len(result['context_chunks'])}")
+```
+
+### Slack Integration
+
+```bash
+/ai What is OWASP ZAP used for?
+/ai How do I contribute to OWASP projects?
+/ai What are the flagship projects?
+```
+
+### Direct API
+
+```bash
+curl -X POST https://nest.owasp.org/api/ai/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What is OWASP Juice Shop?"}'
+```
+
+## Code Reference
+
+Key implementation files:
+
+- Agent: `backend/apps/ai/agent/agent.py:19`
+- Nodes: `backend/apps/ai/agent/nodes.py`
+- Chunk Model: `backend/apps/ai/models/chunk.py:12`
+- Context Model: `backend/apps/ai/models/context.py:15`
+- Extractors: `backend/apps/ai/common/extractors/`
+- RAG Tools: `backend/apps/ai/agent/tools/rag/`
+
+## Monitoring
+
+<Tip>
+  Enable debug logging to track agent iterations and retrieval performance:
+  
+  ```python
+  import logging
+  logging.getLogger('apps.ai').setLevel(logging.DEBUG)
+  ```
+</Tip>
+
+## Future Enhancements
+
+<Card title="Coming Soon" icon="wand-magic-sparkles">
+  - Multi-modal embeddings (images, code)
+  - Cross-project recommendations
+  - Trend analysis and insights
+  - Automated issue triage
+  - Project health predictions
+</Card>
+
+## Related Features
+
+- [Slack Bot](/features/slack-bot) - Access AI via `/ai` command
+- [Search](/features/search) - Combines keyword and semantic search
+- [Projects](/features/projects) - Projects indexed for AI

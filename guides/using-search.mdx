@@ -1,0 +1,476 @@
+---
+title: Advanced Search
+description: Master search query syntax and filters in OWASP Nest
+icon: search
+---
+
+OWASP Nest provides powerful structured search capabilities with advanced query syntax and filtering. This guide covers all available search features and operators.
+
+## Search Query Syntax
+
+Nest uses a structured query parser that supports field-specific searches, comparison operators, and quoted strings.
+
+### Basic Field Syntax
+
+Search specific fields using the `field:value` format:
+
+```bash
+name:nest
+stars:100
+language:python
+```
+
+### Field Types
+
+The query parser supports four field types:
+
+<CardGroup cols={2}>
+  <Card title="String Fields" icon="text">
+    Text-based searches with partial matching
+    
+    **Example**: `name:nest` `language:python`
+  </Card>
+  
+  <Card title="Number Fields" icon="hashtag">
+    Numeric searches with comparison operators
+    
+    **Example**: `stars:100` `forks>50`
+  </Card>
+  
+  <Card title="Boolean Fields" icon="toggle-on">
+    True/false values
+    
+    **Example**: `archived:false` `is_template:true`
+  </Card>
+  
+  <Card title="Date Fields" icon="calendar">
+    Date-based searches with comparisons
+    
+    **Example**: `created_at>2024-01-01`
+  </Card>
+</CardGroup>
+
+## Comparison Operators
+
+Use comparison operators with number and date fields:
+
+| Operator | Description | Example |
+|----------|-------------|----------|
+| `=` | Equal to (default) | `stars=100` |
+| `>` | Greater than | `stars>100` |
+| `<` | Less than | `stars<100` |
+| `>=` | Greater than or equal | `stars>=100` |
+| `<=` | Less than or equal | `stars<=100` |
+
+### Number Field Examples
+
+```bash
+# Repositories with exactly 100 stars
+stars:100
+stars=100
+
+# Repositories with more than 100 stars
+stars>100
+
+# Repositories with 50 or fewer stars
+stars<=50
+
+# Contributors count greater than or equal to 10
+contributors>=10
+```
+
+### Date Field Examples
+
+```bash
+# Created after January 1, 2024
+created_at>2024-01-01
+created_at>20240101
+
+# Updated before December 31, 2023
+updated_at<2023-12-31
+
+# Created on specific date
+created_at=2024-01-15
+```
+
+<Note>
+  Date formats supported: `YYYY-MM-DD` or `YYYYMMDD`
+</Note>
+
+## String Matching
+
+String fields support two matching strategies:
+
+### Case-Insensitive Partial Match (Default)
+
+```bash
+# Matches "Nest", "nest", "OWASP Nest", etc.
+name:nest
+
+# Matches "Python", "python", "python3", etc.
+language:python
+```
+
+### Exact Match
+
+Use quotes for exact matching:
+
+```bash
+# Exact match (case-sensitive in strict mode)
+name:"OWASP Nest"
+
+language:"TypeScript"
+```
+
+## Quoted Strings
+
+Use double quotes for multi-word values:
+
+```bash
+# Search for projects with spaces in the name
+name:"Web Security Testing Guide"
+
+# Search for multi-word descriptions
+description:"application security"
+```
+
+### Escaping Quotes
+
+Escape quotes within quoted strings:
+
+```bash
+name:"OWASP \"Nest\" Project"
+```
+
+## Boolean Values
+
+Boolean fields accept multiple value formats:
+
+**True values**: `true`, `1`, `yes`, `on`
+
+**False values**: `false`, `0`, `no`, `off`
+
+```bash
+# All equivalent searches for archived repositories
+archived:true
+archived:1
+archived:yes
+archived:on
+
+# All equivalent searches for non-archived repositories
+archived:false
+archived:0
+archived:no
+archived:off
+```
+
+## Combining Conditions
+
+All conditions are combined with implicit AND logic:
+
+```bash
+# Repositories named "nest" with more than 100 stars
+name:nest stars>100
+
+# Python projects with over 50 forks, updated this year
+language:python forks>50 updated_at>2024-01-01
+
+# Active (non-archived) projects with high engagement
+archived:false stars>500 contributors>10
+```
+
+<Warning>
+  OR logic is not supported. All conditions must match.
+</Warning>
+
+## Free-Text Search
+
+Tokens without a field prefix are treated as free-text searches:
+
+```bash
+# Searches default field (typically "query" or "name")
+security testing
+
+# Mix structured and free-text
+web security language:javascript
+```
+
+## Real-World Examples
+
+### Find Popular Python Projects
+
+```bash
+language:python stars>100 forks>20 archived:false
+```
+
+### Find Recently Updated Projects
+
+```bash
+updated_at>2024-01-01 stars>50
+```
+
+### Find Beginner-Friendly Projects
+
+```bash
+stars>10 stars<100 contributors>3
+```
+
+### Find Projects by Technology
+
+```bash
+language:typescript name:nest updated_at>2023-01-01
+```
+
+## Searchable Fields by Entity
+
+### Repositories
+
+<ResponseField name="name" type="string">
+  Repository name (partial match)
+</ResponseField>
+
+<ResponseField name="language" type="string">
+  Primary programming language
+</ResponseField>
+
+<ResponseField name="stars" type="number">
+  Number of GitHub stars
+</ResponseField>
+
+<ResponseField name="forks" type="number">
+  Number of repository forks
+</ResponseField>
+
+<ResponseField name="contributors" type="number">
+  Number of unique contributors
+</ResponseField>
+
+<ResponseField name="archived" type="boolean">
+  Whether the repository is archived
+</ResponseField>
+
+<ResponseField name="created_at" type="date">
+  Repository creation date
+</ResponseField>
+
+<ResponseField name="updated_at" type="date">
+  Last update date
+</ResponseField>
+
+### Projects
+
+<ResponseField name="name" type="string">
+  Project name (partial match)
+</ResponseField>
+
+<ResponseField name="level" type="string">
+  Project level (e.g., "flagship", "lab")
+</ResponseField>
+
+<ResponseField name="created_at" type="date">
+  Project creation date
+</ResponseField>
+
+<ResponseField name="updated_at" type="date">
+  Last update date
+</ResponseField>
+
+### Chapters
+
+<ResponseField name="name" type="string">
+  Chapter name (partial match)
+</ResponseField>
+
+<ResponseField name="country" type="string">
+  Chapter country
+</ResponseField>
+
+<ResponseField name="region" type="string">
+  Geographic region
+</ResponseField>
+
+## Error Handling
+
+The query parser gracefully handles errors:
+
+### Unknown Fields
+
+```bash
+# Unknown field is ignored (non-strict mode)
+invalidfield:value name:nest
+# Result: Only searches by name:nest
+```
+
+### Invalid Values
+
+```bash
+# Invalid number format is ignored
+stars:abc name:nest
+# Result: Only searches by name:nest
+```
+
+### Malformed Dates
+
+```bash
+# Invalid date format is ignored
+created_at:2024-13-01 name:nest
+# Result: Only searches by name:nest
+```
+
+<Tip>
+  In non-strict mode, invalid conditions are silently ignored. Your search will still work with valid conditions.
+</Tip>
+
+## Implementation Details
+
+Nest's structured search is powered by a custom query parser:
+
+### Parser Configuration
+
+```python
+from apps.common.search.query_parser import QueryParser
+
+# Define searchable fields
+field_schema = {
+    "name": "string",
+    "stars": "number",
+    "archived": "boolean",
+    "created_at": "date"
+}
+
+# Initialize parser
+parser = QueryParser(
+    field_schema=field_schema,
+    case_sensitive=False,
+    default_field="query",
+    strict=False
+)
+
+# Parse query
+conditions = parser.parse("name:nest stars>100")
+```
+
+### Query Result Format
+
+```python
+[
+    {
+        "field": "name",
+        "type": "string",
+        "value": "nest"
+    },
+    {
+        "field": "stars",
+        "type": "number",
+        "op": ">",
+        "value": 100
+    }
+]
+```
+
+## API Integration
+
+Use structured search with the REST API:
+
+### Search Repositories
+
+```bash
+curl "https://nest.owasp.org/api/v0/repositories/?q=language:python+stars>100"
+```
+
+### Search Projects
+
+```bash
+curl "https://nest.owasp.org/api/v0/projects/?q=level:flagship+updated_at>2024-01-01"
+```
+
+### URL Encoding
+
+Remember to URL-encode special characters:
+
+```bash
+# Raw query
+language:python stars>100
+
+# URL encoded
+language%3Apython+stars%3E100
+```
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -G "https://nest.owasp.org/api/v0/repositories/" \
+      --data-urlencode "q=language:python stars>100"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    from urllib.parse import urlencode
+    
+    params = {"q": "language:python stars>100"}
+    url = f"https://nest.owasp.org/api/v0/repositories/?{urlencode(params)}"
+    response = requests.get(url)
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    const params = new URLSearchParams({
+      q: 'language:python stars>100'
+    });
+    
+    const response = await fetch(
+      `https://nest.owasp.org/api/v0/repositories/?${params}`
+    );
+    ```
+  </Tab>
+</Tabs>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Start Simple">
+    Begin with basic searches and add conditions incrementally:
+    
+    1. `name:nest`
+    2. `name:nest stars>100`
+    3. `name:nest stars>100 language:python`
+  </Accordion>
+  
+  <Accordion title="Use Appropriate Operators">
+    Choose operators that match your intent:
+    - Use `>` for "at least" searches: `stars>100`
+    - Use `>=` for "minimum" thresholds: `contributors>=10`
+    - Use `<` for "maximum" limits: `forks<50`
+  </Accordion>
+  
+  <Accordion title="Quote Multi-Word Values">
+    Always quote strings with spaces:
+    
+    ```bash
+    # Correct
+    name:"Web Application Firewall"
+    
+    # Incorrect (will split into multiple tokens)
+    name:Web Application Firewall
+    ```
+  </Accordion>
+  
+  <Accordion title="Validate Date Formats">
+    Use ISO format dates for clarity:
+    
+    ```bash
+    # Preferred
+    created_at>2024-01-01
+    
+    # Also valid
+    created_at>20240101
+    ```
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  Test your search queries in the API before integrating them into applications!
+</Tip>

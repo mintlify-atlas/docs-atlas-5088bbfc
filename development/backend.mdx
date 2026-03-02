@@ -1,0 +1,880 @@
+---
+title: Backend Development
+description: Django backend development guide for OWASP Nest
+---
+
+## Overview
+
+The OWASP Nest backend is built with Django 6.0 and Python 3.13, using modern Python frameworks and libraries for API development, search, and AI features.
+
+## Tech Stack
+
+<CardGroup cols={3}>
+  <Card title="Django 6.0" icon="python">
+    Web framework
+  </Card>
+  <Card title="Django Ninja" icon="bolt">
+    REST API framework
+  </Card>
+  <Card title="Strawberry" icon="graphql" iconType="duotone">
+    GraphQL library
+  </Card>
+  <Card title="PostgreSQL" icon="database">
+    Primary database
+  </Card>
+  <Card title="Redis" icon="memory">
+    Cache & queue
+  </Card>
+  <Card title="Poetry" icon="book">
+    Dependency management
+  </Card>
+</CardGroup>
+
+## Project Structure
+
+```
+backend/
+├── apps/                   # Django applications
+│   ├── ai/                # AI agent and vector search
+│   ├── api/               # REST and GraphQL endpoints
+│   ├── common/            # Shared utilities
+│   ├── core/              # Core Django app
+│   ├── github/            # GitHub integration
+│   ├── mentorship/        # Mentorship features
+│   ├── nest/              # Nest-specific models
+│   ├── owasp/             # OWASP data models
+│   ├── sitemap/           # Sitemap generation
+│   └── slack/             # NestBot integration
+├── data/                  # Database fixtures
+├── settings/              # Django configurations
+│   ├── base.py           # Base settings
+│   ├── local.py          # Local development
+│   ├── production.py     # Production
+│   └── test.py           # Testing
+├── tests/                 # Test files
+├── manage.py              # Django management
+├── pyproject.toml         # Poetry configuration
+└── .env                   # Environment variables
+```
+
+## Development Setup
+
+### Prerequisites
+
+Ensure you have completed the [local development setup](/development/setup) first.
+
+### Dependencies
+
+Dependencies are managed with Poetry and defined in `pyproject.toml`:
+
+<Tabs>
+  <Tab title="Core">
+    ```toml pyproject.toml
+    django = "^6.0"
+    django-configurations = "^2.5.1"
+    django-ninja = "^1.5.3"
+    strawberry-graphql = { extras = ["django"], version = "^0.291.0" }
+    psycopg2-binary = "^2.9.9"
+    redis = "^6.0.0"
+    gunicorn = "^25.0.0"
+    ```
+  </Tab>
+  
+  <Tab title="Search & AI">
+    ```toml pyproject.toml
+    algoliasearch = "^4.13.2"
+    algoliasearch-django = "^4.0.0"
+    openai = "^2.0.1"
+    langchain = "^0.3.26"
+    langgraph = "^1.0.1"
+    pgvector = "^0.4.1"
+    ```
+  </Tab>
+  
+  <Tab title="Integrations">
+    ```toml pyproject.toml
+    pygithub = "^2.5.0"
+    slack-bolt = "^1.22.0"
+    django-storages = { extras = ["s3"], version = "^1.14.4" }
+    sentry-sdk = { extras = ["django"], version = "^2.20.0" }
+    ```
+  </Tab>
+  
+  <Tab title="Testing">
+    ```toml pyproject.toml
+    [tool.poetry.group.test.dependencies]
+    pytest = "^9.0.1"
+    pytest-django = "^4.5"
+    pytest-cov = "^7.0"
+    pytest-mock = "^3.0"
+    pytest-xdist = "^3.0"
+    ```
+  </Tab>
+</Tabs>
+
+### Update Dependencies
+
+```bash
+make update-backend-dependencies
+```
+
+This runs `poetry update` to update all backend dependencies.
+
+## Common Commands
+
+<Tabs>
+  <Tab title="Django">
+    <CodeGroup>
+    ```bash Migrations
+    # Create migrations
+    make migrations
+    
+    # Apply migrations
+    make migrate
+    
+    # Create empty migration
+    APP_NAME=owasp make migrations-empty
+    
+    # Merge conflicting migrations
+    make merge-migrations
+    ```
+
+    ```bash Shell & Admin
+    # Django shell
+    make django-shell
+    
+    # Create superuser
+    make create-superuser
+    
+    # Backend shell
+    make shell-backend
+    ```
+
+    ```bash Cache & Static
+    # Clear cache
+    make clear-cache
+    
+    # Collect static files
+    make collect-static
+    ```
+    </CodeGroup>
+  </Tab>
+  
+  <Tab title="Data Management">
+    <CodeGroup>
+    ```bash Load Data
+    # Load database fixtures
+    make load-data
+    
+    # Index to Algolia
+    make index-data
+    
+    # Sync from GitHub
+    make sync-data
+    ```
+
+    ```bash Enrich Data
+    # Enrich all data
+    make enrich-data
+    
+    # Enrich specific entity
+    make github-enrich-issues
+    make owasp-enrich-projects
+    ```
+
+    ```bash Backup & Restore
+    # Dump database
+    make dump-data
+    
+    # Save backup
+    make save-backup
+    
+    # Restore backup
+    make restore-backup
+    ```
+    </CodeGroup>
+  </Tab>
+  
+  <Tab title="Database">
+    <CodeGroup>
+    ```bash Database Commands
+    # Database shell
+    make shell-db
+    
+    # Recreate schema
+    make recreate-schema
+    
+    # Purge data
+    make purge-data
+    ```
+
+    ```bash Execute Commands
+    # Execute backend command
+    CMD="python manage.py help" make exec-backend-command
+    
+    # Execute database command
+    CMD="psql -U nest_user_dev -d nest_db_dev" make exec-db-command
+    ```
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+## Django Apps
+
+### AI App
+
+Provides AI-powered features using LangChain and OpenAI:
+
+<AccordionGroup>
+  <Accordion title="Agent System">
+    **LangGraph Agent** (`apps/ai/agent/`)
+
+    - Natural language query processing
+    - Multi-step reasoning with tools
+    - RAG (Retrieval-Augmented Generation)
+    - Context-aware responses
+
+    Example usage:
+    ```python
+    from apps.ai.agent import Agent
+    
+    agent = Agent()
+    response = agent.query("Find beginner-friendly Python projects")
+    ```
+  </Accordion>
+  
+  <Accordion title="Vector Embeddings">
+    **pgvector Integration**
+
+    - Document chunking and embedding
+    - Semantic similarity search
+    - Context retrieval for RAG
+
+    Models:
+    - `Embedding` - Vector representations
+    - `Context` - Document contexts
+    - `Chunk` - Text chunks
+  </Accordion>
+  
+  <Accordion title="Management Commands">
+    ```bash
+    # Generate embeddings
+    python manage.py generate_embeddings
+    
+    # Chunk documents
+    python manage.py chunk_documents
+    
+    # Update contexts
+    python manage.py update_contexts
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### API App
+
+Provides REST and GraphQL endpoints:
+
+<Tabs>
+  <Tab title="REST API">
+    **Django Ninja** (`apps/api/rest/`)
+
+    Base URL: `/api/v0/`
+
+    ```python apps/api/rest/projects.py
+    from ninja import Router
+    from apps.owasp.models import Project
+    
+    router = Router()
+    
+    @router.get("/projects/")
+    def list_projects(request, limit: int = 10):
+        projects = Project.objects.all()[:limit]
+        return {"projects": [p.to_dict() for p in projects]}
+    ```
+
+    Features:
+    - Automatic OpenAPI docs at `/api/docs`
+    - Pydantic schema validation
+    - Built-in filtering and pagination
+  </Tab>
+  
+  <Tab title="GraphQL API">
+    **Strawberry GraphQL** (`apps/api/graphql/`)
+
+    Endpoint: `/graphql/`
+
+    ```python apps/api/graphql/nodes.py
+    import strawberry
+    from apps.owasp.models import Project
+    
+    @strawberry.django.type(Project)
+    class ProjectNode:
+        id: strawberry.ID
+        name: str
+        description: str
+        url: str
+    ```
+
+    Query example:
+    ```graphql
+    query {
+      projects(first: 10) {
+        edges {
+          node {
+            id
+            name
+            description
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### GitHub App
+
+Syncs data from GitHub:
+
+<AccordionGroup>
+  <Accordion title="Models">
+    Key models in `apps/github/models/`:
+
+    - `GitHubOrganization` - OWASP and related orgs
+    - `GitHubRepository` - Project repositories
+    - `GitHubIssue` - Issues and contribution opportunities
+    - `GitHubUser` - User profiles
+    - `GitHubPullRequest` - Pull requests
+  </Accordion>
+  
+  <Accordion title="Sync Commands">
+    ```bash
+    # Update OWASP organization
+    make github-update-owasp-organization
+    
+    # Add related repositories
+    make github-add-related-repositories
+    
+    # Update users
+    make github-update-users
+    
+    # Enrich issues
+    make github-enrich-issues
+    ```
+  </Accordion>
+  
+  <Accordion title="API Integration">
+    Uses PyGithub for GitHub API access:
+
+    ```python
+    from github import Github
+    from django.conf import settings
+    
+    g = Github(settings.GITHUB_TOKEN)
+    org = g.get_organization("OWASP")
+    repos = org.get_repos()
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### OWASP App
+
+Manages OWASP-specific data:
+
+<Tabs>
+  <Tab title="Projects">
+    **Project Model** (`apps/owasp/models.py`)
+
+    Fields:
+    - `name` - Project name
+    - `description` - Project description
+    - `level` - Project level (Lab, Production, Flagship)
+    - `type` - Project type (Code, Documentation, Tool)
+    - `leaders_raw` - Project leaders (JSON)
+    - `repositories` - Related GitHub repos (M2M)
+    - `url` - Project website
+
+    Management commands:
+    ```bash
+    make owasp-scrape-projects
+    make owasp-enrich-projects
+    make owasp-aggregate-projects
+    ```
+  </Tab>
+  
+  <Tab title="Chapters">
+    **Chapter Model**
+
+    Fields:
+    - `name` - Chapter name
+    - `location` - Geographic location
+    - `latitude` / `longitude` - Coordinates
+    - `leaders` - Chapter leaders
+    - `url` - Chapter website
+
+    Management commands:
+    ```bash
+    make owasp-scrape-chapters
+    make owasp-enrich-chapters
+    ```
+  </Tab>
+  
+  <Tab title="Committees">
+    **Committee Model**
+
+    Fields:
+    - `name` - Committee name
+    - `description` - Committee description
+    - `leaders` - Committee leaders
+    - `url` - Committee website
+
+    Management commands:
+    ```bash
+    make owasp-scrape-committees
+    make owasp-enrich-committees
+    ```
+  </Tab>
+</Tabs>
+
+### Slack App
+
+NestBot Slack integration:
+
+<AccordionGroup>
+  <Accordion title="Slash Commands">
+    Located in `apps/slack/commands/`:
+
+    - `/nest-find-issues` - Search contribution opportunities
+    - `/nest-find-projects` - Search OWASP projects
+    - `/nest-help` - Get help
+
+    Example:
+    ```python apps/slack/commands/find_projects.py
+    from slack_bolt import Ack, Respond
+    
+    def handle_find_projects(ack: Ack, respond: Respond, command: dict):
+        ack()
+        query = command["text"]
+        # Search projects...
+        respond(f"Found projects matching: {query}")
+    ```
+  </Accordion>
+  
+  <Accordion title="Event Handlers">
+    Located in `apps/slack/events/`:
+
+    - `app_mention` - Handle @NestBot mentions
+    - `message` - Handle DMs
+
+    Configuration:
+    ```python
+    DJANGO_SLACK_BOT_TOKEN=<your-bot-token>
+    DJANGO_SLACK_SIGNING_SECRET=<your-signing-secret>
+    ```
+  </Accordion>
+  
+  <Accordion title="Sync Data">
+    ```bash
+    make slack-sync-data
+    ```
+
+    Syncs:
+    - User profiles
+    - Channel information
+    - Message history
+  </Accordion>
+</AccordionGroup>
+
+## Configuration
+
+### Django Settings
+
+Settings are organized using `django-configurations`:
+
+<Tabs>
+  <Tab title="Base">
+    **base.py** - Shared settings
+
+    ```python settings/base.py
+    from configurations import Configuration
+    
+    class Base(Configuration):
+        DEBUG = False
+        ALLOWED_HOSTS = []
+        
+        INSTALLED_APPS = [
+            'django.contrib.admin',
+            'django.contrib.auth',
+            # ...
+            'apps.ai',
+            'apps.api',
+            'apps.github',
+            # ...
+        ]
+    ```
+  </Tab>
+  
+  <Tab title="Local">
+    **local.py** - Local development
+
+    ```python settings/local.py
+    from settings.base import Base
+    
+    class Local(Base):
+        DEBUG = True
+        IS_LOCAL_ENVIRONMENT = True
+        
+        ALLOWED_ORIGINS = (
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        )
+    ```
+
+    Usage:
+    ```plaintext .env
+    DJANGO_CONFIGURATION=Local
+    ```
+  </Tab>
+  
+  <Tab title="Production">
+    **production.py** - Production
+
+    ```python settings/production.py
+    from settings.base import Base
+    
+    class Production(Base):
+        DEBUG = False
+        SECURE_SSL_REDIRECT = True
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
+    ```
+
+    Usage:
+    ```plaintext .env
+    DJANGO_CONFIGURATION=Production
+    ```
+  </Tab>
+</Tabs>
+
+### Environment Variables
+
+Key variables in `backend/.env`:
+
+```plaintext .env
+# Django
+DJANGO_CONFIGURATION=Local
+DJANGO_SECRET_KEY=<secret-key>
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Database
+DJANGO_DB_HOST=db
+DJANGO_DB_NAME=nest_db_dev
+DJANGO_DB_USER=nest_user_dev
+DJANGO_DB_PASSWORD=nest_user_dev_password
+DJANGO_DB_PORT=5432
+
+# Redis
+DJANGO_REDIS_HOST=cache
+DJANGO_REDIS_PASSWORD=nest-cache-password
+
+# Algolia
+DJANGO_ALGOLIA_APPLICATION_ID=<app-id>
+DJANGO_ALGOLIA_WRITE_API_KEY=<api-key>
+
+# GitHub
+GITHUB_TOKEN=<github-token>
+
+# OpenAI
+DJANGO_OPEN_AI_SECRET_KEY=<openai-key>
+
+# Slack
+DJANGO_SLACK_BOT_TOKEN=<bot-token>
+DJANGO_SLACK_SIGNING_SECRET=<signing-secret>
+
+# Sentry
+DJANGO_SENTRY_DSN=<sentry-dsn>
+```
+
+See [Environment Variables](/deployment/environment-variables) for full reference.
+
+## Testing
+
+### Test Configuration
+
+Tests use pytest with Django plugin:
+
+```toml pyproject.toml
+[tool.pytest]
+ini_options.DJANGO_CONFIGURATION = "Test"
+ini_options.DJANGO_SETTINGS_MODULE = "settings.test"
+ini_options.addopts = [
+  "--cov-config=pyproject.toml",
+  "--cov-fail-under=95",
+  "--cov-report=term-missing",
+  "--cov=.",
+  "--numprocesses=auto",
+]
+```
+
+### Running Tests
+
+<CodeGroup>
+```bash All Tests
+make test-backend
+```
+
+```bash With Coverage
+# Automatically runs with coverage
+# Minimum coverage: 95%
+make test-backend
+```
+
+```bash Specific Test
+docker exec -it nest-backend pytest tests/test_projects.py
+```
+
+```bash Parallel Tests
+# Automatically runs with pytest-xdist
+make test-backend
+```
+</CodeGroup>
+
+### Writing Tests
+
+<Tabs>
+  <Tab title="Model Tests">
+    ```python tests/test_models.py
+    import pytest
+    from apps.owasp.models import Project
+    
+    @pytest.mark.django_db
+    def test_create_project():
+        project = Project.objects.create(
+            name="Test Project",
+            description="A test project",
+            level="Lab",
+        )
+        assert project.name == "Test Project"
+        assert project.level == "Lab"
+    ```
+  </Tab>
+  
+  <Tab title="API Tests">
+    ```python tests/test_api.py
+    import pytest
+    from django.test import Client
+    
+    @pytest.mark.django_db
+    def test_projects_endpoint():
+        client = Client()
+        response = client.get("/api/v0/projects/")
+        assert response.status_code == 200
+        assert "projects" in response.json()
+    ```
+  </Tab>
+  
+  <Tab title="GraphQL Tests">
+    ```python tests/test_graphql.py
+    import pytest
+    from django.test import Client
+    
+    @pytest.mark.django_db
+    def test_projects_query():
+        client = Client()
+        query = '''
+        query {
+          projects(first: 10) {
+            edges {
+              node {
+                id
+                name
+              }
+            }
+          }
+        }
+        '''
+        response = client.post(
+            "/graphql/",
+            {"query": query},
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+    ```
+  </Tab>
+</Tabs>
+
+## Code Quality
+
+### Linting & Formatting
+
+<CodeGroup>
+```bash Check Backend
+make check-backend
+```
+
+```bash Pre-commit Hooks
+# Install hooks
+pre-commit install
+
+# Run manually
+make pre-commit
+```
+</CodeGroup>
+
+Pre-commit hooks (`backend/.pre-commit-config.yaml`):
+- **Ruff** - Python linter and formatter
+- **mypy** - Type checking
+- **djlint** - Django template linting
+
+### Ruff Configuration
+
+```toml pyproject.toml
+[tool.ruff]
+target-version = "py313"
+line-length = 99
+lint.select = ["ALL"]
+lint.ignore = [
+  "ANN",     # Type annotations
+  "D407",    # Dashed underlines
+  "COM812",  # Trailing commas
+]
+```
+
+## Database Management
+
+### Migrations
+
+<Steps>
+  <Step title="Create Migration">
+    ```bash
+    make migrations
+    ```
+  </Step>
+  
+  <Step title="Review Migration">
+    ```bash
+    # Check migration file
+    cat backend/apps/owasp/migrations/0001_initial.py
+    ```
+  </Step>
+  
+  <Step title="Apply Migration">
+    ```bash
+    make migrate
+    ```
+  </Step>
+</Steps>
+
+### Database Shell
+
+```bash
+# Django shell
+make django-shell
+
+# PostgreSQL shell
+make shell-db
+```
+
+Example queries:
+```python
+# Django shell
+from apps.owasp.models import Project
+Project.objects.filter(level="Flagship").count()
+```
+
+## Background Jobs
+
+### Django RQ
+
+Background tasks use Redis Queue:
+
+```python apps/ai/tasks.py
+from django_rq import job
+
+@job('ai')
+def generate_embeddings(document_id):
+    # Process document...
+    pass
+```
+
+Enqueue jobs:
+```python
+from apps.ai.tasks import generate_embeddings
+generate_embeddings.delay(document_id=123)
+```
+
+Worker runs automatically via `docker-compose/local/compose.yaml`:
+```yaml
+worker:
+  command: python manage.py rqworker ai --with-scheduler
+```
+
+## Debugging
+
+### Django Debug Toolbar
+
+Enabled in local development:
+
+1. Visit any page
+2. Click debug toolbar on right side
+3. View SQL queries, cache hits, etc.
+
+### Python Debugger
+
+<Tabs>
+  <Tab title="pdb">
+    ```python
+    import pdb; pdb.set_trace()
+    ```
+  </Tab>
+  
+  <Tab title="ipdb">
+    ```python
+    import ipdb; ipdb.set_trace()
+    ```
+  </Tab>
+  
+  <Tab title="VS Code">
+    Attach to running container:
+    ```json .vscode/launch.json
+    {
+      "type": "python",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Logs
+
+```bash
+# Backend logs
+docker logs -f nest-backend
+
+# Worker logs
+docker logs -f nest-worker
+
+# Database logs
+docker logs -f nest-db
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Frontend Development" icon="react" href="/development/frontend">
+    Learn about Next.js frontend development
+  </Card>
+  <Card title="Testing Guide" icon="vial" href="/development/testing">
+    Write and run tests
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/rest">
+    Explore API endpoints
+  </Card>
+  <Card title="Contributing" icon="code-pull-request" href="/contributing">
+    Contribution guidelines
+  </Card>
+</CardGroup>

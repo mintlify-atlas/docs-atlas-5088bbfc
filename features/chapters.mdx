@@ -1,0 +1,388 @@
+---
+title: OWASP Chapters
+description: Discover local OWASP chapters worldwide with geographic search and proximity features
+---
+
+## Overview
+
+OWASP Nest helps you discover and connect with OWASP chapters around the world. With geocoded location data and proximity-based search, find your local chapter and get involved in the community.
+
+## Chapter Model
+
+Chapters are repository-based entities with location intelligence:
+
+```
+backend/apps/owasp/models/chapter.py
+```
+
+### Key Features
+
+<CardGroup cols={2}>
+  <Card title="Geographic Data" icon="map-pin">
+    Latitude/longitude coordinates for all chapters
+  </Card>
+  <Card title="Auto-Geocoding" icon="wand-magic-sparkles">
+    AI-powered location detection from metadata
+  </Card>
+  <Card title="Regional Info" icon="globe">
+    Country, region, postal code organization
+  </Card>
+  <Card title="Activity Tracking" icon="chart-line">
+    Contribution data and engagement metrics
+  </Card>
+</CardGroup>
+
+## Chapter Attributes
+
+### Location Fields
+
+```python
+name: str                      # Chapter name
+country: str                   # Country name
+region: str                    # State/province/region
+postal_code: str               # Postal/ZIP code
+latitude: float                # Geocoded latitude
+longitude: float               # Geocoded longitude
+suggested_location: str        # AI-generated location string
+```
+
+### Chapter Metadata
+
+```python
+level: str                     # Chapter level/status
+currency: str                  # Local currency code
+meetup_group: str             # Meetup.com group name
+related_urls: list[str]       # Website, social links
+```
+
+### Activity Data
+
+```python
+contribution_data: dict        # Daily contribution counts
+contribution_stats: dict       # Breakdown by activity type
+created_at: datetime          # Chapter creation date
+updated_at: datetime          # Last update
+```
+
+## Geographic Search
+
+### Interactive Map View
+
+The chapters page features an interactive map showing all chapters:
+
+```typescript
+// frontend/src/app/chapters/page.tsx
+```
+
+**Map Features:**
+- Cluster markers for dense regions
+- Click markers to view chapter details
+- Automatic user location detection
+- Proximity-based "chapters near you"
+- 400px height, full-width responsive design
+
+<Note>
+  The map loads up to 1000 chapters on the first page for comprehensive geographic coverage.
+</Note>
+
+### Proximity-Based Search
+
+Find chapters near you with automatic IP-based location detection:
+
+```typescript
+const searchParams = {
+  aroundLatLngViaIP: true,  // Auto-detect user location
+  indexName: 'chapters',
+  hitsPerPage: 25
+}
+```
+
+### Location Filters
+
+Filter chapters by geographic bounds:
+
+```bash
+GET /api/v0/chapters?latitude_gte=40&latitude_lte=45&longitude_gte=-75&longitude_lte=-70
+```
+
+**Available Parameters:**
+- `latitude_gte` - Minimum latitude
+- `latitude_lte` - Maximum latitude  
+- `longitude_gte` - Minimum longitude
+- `longitude_lte` - Maximum longitude
+- `country` - Filter by country name
+
+<CodeGroup>
+```bash cURL
+curl "https://nest.owasp.org/api/v0/chapters?country=United%20States&ordering=-updated_at"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "https://nest.owasp.org/api/v0/chapters",
+    params={
+        "country": "United States",
+        "latitude_gte": 40,
+        "latitude_lte": 45
+    }
+)
+chapters = response.json()["items"]
+```
+</CodeGroup>
+
+## Chapter API
+
+### List Chapters
+
+```bash
+GET /api/v0/chapters
+```
+
+**Query Parameters:**
+- `country` - Filter by country
+- `latitude_gte`, `latitude_lte` - Latitude bounds
+- `longitude_gte`, `longitude_lte` - Longitude bounds
+- `ordering` - Sort order
+- `page` - Page number
+
+**Sorting Options:**
+- `created_at` / `-created_at`
+- `updated_at` / `-updated_at`
+- `latitude` / `-latitude`
+- `longitude` / `-longitude`
+
+**Example Response:**
+
+```json
+{
+  "items": [
+    {
+      "key": "london",
+      "name": "OWASP London",
+      "latitude": 51.5074,
+      "longitude": -0.1278,
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-03-01T14:22:00Z"
+    }
+  ],
+  "count": 278,
+  "next": "https://nest.owasp.org/api/v0/chapters?page=2"
+}
+```
+
+### Get Chapter Details
+
+```bash
+GET /api/v0/chapters/{chapter_key}
+```
+
+**Example:**
+
+```bash
+curl "https://nest.owasp.org/api/v0/chapters/london"
+```
+
+**Response:**
+
+```json
+{
+  "key": "london",
+  "name": "OWASP London",
+  "country": "United Kingdom",
+  "region": "England",
+  "latitude": 51.5074,
+  "longitude": -0.1278,
+  "leaders": [
+    {
+      "key": "sam",
+      "name": "Sam Stepanyan"
+    }
+  ],
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-03-01T14:22:00Z"
+}
+```
+
+## Geocoding System
+
+Chapters use AI-powered geocoding to convert metadata into coordinates:
+
+### Location Detection Process
+
+1. **Metadata Extraction** - Parse country, region, postal code from repository
+2. **AI Location Suggestion** - Generate suggested location string using OpenAI
+3. **Geocoding** - Convert location string to lat/lng coordinates
+4. **Validation** - Verify coordinates are valid and within expected bounds
+
+```python
+# backend/apps/owasp/models/chapter.py:131
+def generate_geo_location(self) -> None:
+    """Add latitude and longitude data based on suggested location or geo string."""
+    location = None
+    if self.suggested_location and self.suggested_location != "None":
+        location = get_location_coordinates(self.suggested_location)
+    if location is None:
+        location = get_location_coordinates(self.get_geo_string())
+    
+    if location:
+        self.latitude = location.latitude
+        self.longitude = location.longitude
+```
+
+### AI-Generated Location Strings
+
+Chapters use OpenAI to generate structured location strings:
+
+```python
+# backend/apps/owasp/models/chapter.py:143
+def generate_suggested_location(
+    self,
+    open_ai: OpenAi | None = None,
+    max_tokens: int = 100,
+) -> None:
+    """Generate a suggested location using OpenAI."""
+    prompt = Prompt.get_owasp_chapter_suggested_location()
+    open_ai = open_ai or OpenAi()
+    open_ai.set_input(self.get_geo_string())
+    open_ai.set_max_tokens(max_tokens).set_prompt(prompt)
+    suggested_location = open_ai.complete()
+    self.suggested_location = suggested_location if suggested_location != "None" else ""
+```
+
+### Geo String Format
+
+The geo string combines chapter metadata:
+
+```python
+def get_geo_string(self, *, include_name: bool = True) -> str:
+    """Return a geo string for the chapter."""
+    return join_values([
+        self.name.replace("OWASP", "").strip() if include_name else "",
+        self.country,
+        self.postal_code,
+    ], delimiter=", ")
+```
+
+Example: `"London, United Kingdom, SW1A 1AA"`
+
+## Active Chapters
+
+Nest filters for active chapters with valid location data:
+
+```python
+# Only chapters that are active and geocoded
+Chapter.active_chapters.all()
+
+# Count of active chapters
+Chapter.active_chapters_count()
+```
+
+**Requirements for Active Status:**
+- `is_active = True`
+- `latitude` and `longitude` not null
+- OWASP repository is not empty
+
+## Chapter URLs
+
+```python
+chapter.nest_key                    # "london" (without www-chapter- prefix)
+chapter.nest_url                    # "/chapters/london"
+chapter.get_absolute_url()          # Full URL with domain
+```
+
+<Note>
+  Chapter keys are the repository name with the `www-chapter-` prefix removed.
+</Note>
+
+## Frontend Integration
+
+### Chapter Card Display
+
+Chapter cards show:
+- Chapter name and location
+- Last updated timestamp
+- Top contributors
+- Social/related URLs
+- "View Details" action button
+
+### Search Experience
+
+```typescript
+// Real-time search with Algolia
+const { items: chapters, isLoaded, searchQuery, handleSearch } = 
+  useSearchPage<Chapter>({
+    indexName: 'chapters',
+    pageTitle: 'OWASP Chapters'
+  })
+```
+
+### Map Wrapper Component
+
+```typescript
+<ChapterMapWrapper
+  geoLocData={searchQuery ? chapters : allChapters}
+  showLocal={true}
+  showLocationSharing={true}
+  style={{
+    height: '400px',
+    width: '100%',
+    zIndex: '0',
+    borderRadius: '0.5rem',
+    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+  }}
+/>
+```
+
+## Slack Integration
+
+Query chapters via the Slack bot:
+
+```
+/chapters [search query]
+```
+
+**Examples:**
+```
+/chapters                    # Show all chapters
+/chapters london            # Search for London chapter
+/chapters start             # Interactive start message
+```
+
+See [Slack Bot](/features/slack-bot) for more commands.
+
+## Database Indexes
+
+Optimized queries with indexes:
+
+```python
+indexes = [
+    models.Index(fields=["-created_at"], name="chapter_created_at_desc_idx"),
+    models.Index(fields=["-updated_at"], name="chapter_updated_at_desc_idx"),
+]
+```
+
+## Code Reference
+
+Key implementation files:
+
+- Model: `backend/apps/owasp/models/chapter.py:19`
+- API: `backend/apps/api/rest/v0/chapter.py:17`
+- Manager: `backend/apps/owasp/models/managers/chapter.py`
+- Frontend: `frontend/src/app/chapters/page.tsx:14`
+- Map Component: `frontend/src/components/ChapterMapWrapper.tsx`
+
+## AI Integration
+
+Chapters are indexed for AI-powered discovery:
+
+```
+backend/apps/ai/common/extractors/chapter.py
+```
+
+## Related Features
+
+- [Search](/features/search) - Geographic chapter search
+- [Events](/features/events) - Find events hosted by chapters
+- [Slack Bot](/features/slack-bot) - Query chapters via `/chapters`

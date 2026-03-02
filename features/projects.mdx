@@ -1,0 +1,344 @@
+---
+title: Project Discovery
+description: Explore OWASP projects with advanced filtering, health metrics, and contribution insights
+---
+
+## Overview
+
+OWASP Nest provides comprehensive project discovery and exploration capabilities. Track over 200+ active OWASP projects with real-time GitHub integration, health metrics, and contribution analytics.
+
+## Project Model
+
+Projects in Nest are repository-based entities that aggregate data from multiple sources:
+
+```
+backend/apps/owasp/models/project.py
+```
+
+### Key Attributes
+
+<CardGroup cols={2}>
+  <Card title="Metadata" icon="tag">
+    Name, description, level, type, leaders, tags
+  </Card>
+  <Card title="GitHub Stats" icon="github">
+    Stars, forks, contributors, commits, releases
+  </Card>
+  <Card title="Activity" icon="chart-line">
+    Issues, PRs, contributions, commit history
+  </Card>
+  <Card title="Health Score" icon="heart-pulse">
+    Automated health metrics and compliance checks
+  </Card>
+</CardGroup>
+
+## Project Levels
+
+Projects are categorized into four maturity levels:
+
+| Level | Description | Badge |
+|-------|-------------|---------|
+| **Flagship** | Mature projects with significant impact | 🏆 |
+| **Production** | Production-ready with active maintenance | ✅ |
+| **Lab** | Experimental projects under development | 🧪 |
+| **Incubator** | New projects in early stages | 🌱 |
+
+<Note>
+  Project levels are sourced from repository metadata and automatically synced from OWASP Foundation repositories.
+</Note>
+
+## Project Types
+
+Projects are classified by type:
+
+- **Code** - Software tools and applications
+- **Documentation** - Guides, standards, and educational content
+- **Tool** - Security testing and analysis tools
+- **Other** - Miscellaneous project types
+
+## Browsing Projects
+
+### Web Interface
+
+The projects page provides a rich browsing experience:
+
+```typescript
+// frontend/src/app/projects/page.tsx
+```
+
+**Features:**
+- Real-time search with Algolia
+- Filter by project level
+- Sort by creation date, update date, stars
+- Pagination with 25 projects per page
+- Project cards with metadata and contributors
+
+### API Access
+
+#### List Projects
+
+```bash
+GET /api/v0/projects
+```
+
+**Query Parameters:**
+- `q` - Structured search query (e.g., `name:security stars:>100`)
+- `level` - Filter by project level (incubator, lab, production, flagship)
+- `ordering` - Sort order (created_at, -created_at, updated_at, -updated_at)
+- `page` - Page number for pagination
+
+**Example:**
+
+<CodeGroup>
+```bash cURL
+curl "https://nest.owasp.org/api/v0/projects?level=flagship&ordering=-stars_count"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "https://nest.owasp.org/api/v0/projects",
+    params={
+        "level": "flagship",
+        "ordering": "-stars_count"
+    }
+)
+projects = response.json()["items"]
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://nest.owasp.org/api/v0/projects?level=flagship'
+);
+const data = await response.json();
+```
+</CodeGroup>
+
+**Response:**
+
+```json
+{
+  "items": [
+    {
+      "key": "zap",
+      "name": "OWASP Zed Attack Proxy",
+      "level": "flagship",
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-03-01T14:22:00Z"
+    }
+  ],
+  "count": 42,
+  "next": "https://nest.owasp.org/api/v0/projects?page=2",
+  "previous": null
+}
+```
+
+#### Get Project Details
+
+```bash
+GET /api/v0/projects/{project_key}
+```
+
+**Example:**
+
+```bash
+curl "https://nest.owasp.org/api/v0/projects/zap"
+```
+
+**Response:**
+
+```json
+{
+  "key": "zap",
+  "name": "OWASP Zed Attack Proxy",
+  "description": "The OWASP Zed Attack Proxy (ZAP) is an easy to use integrated penetration testing tool.",
+  "level": "flagship",
+  "leaders": [
+    {
+      "key": "simon",
+      "name": "Simon Bennetts"
+    }
+  ],
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-03-01T14:22:00Z"
+}
+```
+
+<Note>
+  The project key is the repository name with the `www-project-` prefix removed. For example, `www-project-zap` becomes `zap`.
+</Note>
+
+## Project Metrics
+
+### GitHub Statistics
+
+Nest aggregates statistics from all project repositories:
+
+```python
+# Synthetic fields computed from related repositories
+stars_count: int           # Total stars across all repos
+forks_count: int           # Total forks
+contributors_count: int    # Unique contributors
+commits_count: int         # Total commits
+releases_count: int        # Published releases
+open_issues_count: int     # Current open issues
+watchers_count: int        # Repository watchers
+subscribers_count: int     # Repository subscribers
+```
+
+### Contribution Analytics
+
+Projects track contribution activity over time:
+
+```python
+contribution_data: dict    # Daily contribution counts (YYYY-MM-DD -> count)
+contribution_stats: dict   # Breakdown by type (commits, issues, PRs, releases)
+```
+
+### Health Metrics
+
+Automated health scoring based on:
+
+- Documentation completeness
+- Recent activity
+- Issue response time
+- Release frequency
+- Community engagement
+- Multiple project leaders
+- Funding policy compliance
+
+```python
+health_score: float | None  # Score from 0-100
+```
+
+<Card title="Health Requirements" icon="clipboard-check">
+  Projects must meet specific criteria to maintain good health:
+  
+  - **Multiple Leaders**: More than one project leader
+  - **Funding Compliance**: All repositories have funding configuration
+  - **Active Maintenance**: Recent commits and releases
+</Card>
+
+## Project Properties
+
+### Repository Relationships
+
+Projects can link to multiple GitHub repositories:
+
+```python
+organizations: ManyToMany[Organization]
+owners: ManyToMany[User]
+repositories: ManyToMany[Repository]
+owasp_repository: ForeignKey[Repository]  # Main OWASP page repo
+```
+
+### Metadata Fields
+
+```python
+languages: list[str]      # Programming languages
+licenses: list[str]       # Open source licenses
+topics: list[str]         # GitHub topics
+tags: list[str]          # OWASP tags
+custom_tags: list[str]   # Custom categorization
+audience: list[str]      # Target audience
+```
+
+### Timestamps
+
+```python
+created_at: datetime      # Project creation date
+updated_at: datetime      # Last update from GitHub
+pushed_at: datetime       # Last push to any repository
+released_at: datetime     # Most recent release date
+```
+
+## Issue Tracking
+
+Projects aggregate issues from all linked repositories:
+
+```python
+# Query all issues across project repositories
+project.issues                      # All issues
+project.open_issues                 # Open issues only
+project.issues_count                # Total count
+project.open_issues_count           # Open count
+project.unanswered_issues_count     # No comments
+project.unassigned_issues_count     # No assignees
+```
+
+<Tip>
+  Set `track_issues = False` to exclude specific projects from issue aggregation.
+</Tip>
+
+## Pull Requests
+
+Track pull request activity:
+
+```python
+project.pull_requests               # All PRs
+project.pull_requests_count         # Total count
+project.open_pull_requests_count    # Currently open
+project.pull_request_last_created_at # Most recent PR
+```
+
+## Releases
+
+Access published releases:
+
+```python
+project.published_releases          # Non-draft releases
+project.releases_count              # Total releases
+project.recent_releases_count       # Last 60 days
+```
+
+## Project URLs
+
+```python
+project.nest_key                    # "zap" (without www-project- prefix)
+project.nest_url                    # "/projects/zap"
+project.get_absolute_url()          # Full URL with domain
+```
+
+## Active Projects
+
+Nest uses a custom manager to filter active projects:
+
+```python
+# Only projects with active repositories
+Project.active_projects.all()
+
+# Count of active projects
+Project.active_projects_count()
+```
+
+## Code Reference
+
+Key implementation files:
+
+- Model: `backend/apps/owasp/models/project.py:36`
+- API: `backend/apps/api/rest/v0/project.py:30`
+- Manager: `backend/apps/owasp/models/managers/project.py`
+- Frontend: `frontend/src/app/projects/page.tsx:13`
+
+## AI Integration
+
+Projects are indexed for AI-powered search and insights:
+
+```
+backend/apps/ai/common/extractors/project.py
+```
+
+**Extracted Content:**
+- Project descriptions and summaries
+- Repository topics and tags
+- Programming languages and licenses
+- Project statistics and health metrics
+- Leadership information
+- Related URLs
+
+## Related Features
+
+- [Search](/features/search) - Advanced project search and filtering
+- [AI Insights](/features/ai-insights) - AI-powered project recommendations
+- [Slack Bot](/features/slack-bot) - Query projects via `/projects` command

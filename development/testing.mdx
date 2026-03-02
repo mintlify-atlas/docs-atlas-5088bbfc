@@ -1,0 +1,961 @@
+---
+title: Testing Guide
+description: Comprehensive testing guide for OWASP Nest backend and frontend
+---
+
+## Overview
+
+OWASP Nest maintains high code quality with comprehensive test coverage. All pull requests must pass automated tests and maintain minimum coverage thresholds.
+
+<CardGroup cols={2}>
+  <Card title="Backend Coverage" icon="python">
+    **Minimum: 95%**
+    
+    Pytest with Django integration
+  </Card>
+  <Card title="Frontend Coverage" icon="react">
+    **Minimum: 95%**
+    
+    Jest with React Testing Library
+  </Card>
+</CardGroup>
+
+<Warning>
+  Pull requests that fail tests or drop below coverage thresholds will not be merged.
+</Warning>
+
+## Running Tests
+
+### All Tests
+
+<CodeGroup>
+```bash All Tests (Backend + Frontend)
+make test
+```
+
+```bash Backend Tests Only
+make test-backend
+```
+
+```bash Frontend Tests Only
+make test-frontend
+```
+
+```bash With Code Quality Checks
+make check-test
+```
+</CodeGroup>
+
+### Specific Test Types
+
+<Tabs>
+  <Tab title="Backend">
+    <CodeGroup>
+    ```bash Backend Tests
+    make test-backend
+    ```
+
+    ```bash With Coverage Report
+    # Coverage report automatically generated
+    # Located at: backend/coverage.xml
+    make test-backend
+    ```
+
+    ```bash Fuzz Tests
+    make test-fuzz
+    ```
+    </CodeGroup>
+  </Tab>
+  
+  <Tab title="Frontend">
+    <CodeGroup>
+    ```bash Unit Tests
+    make test-frontend-unit
+    # or
+    cd frontend && pnpm run test:unit
+    ```
+
+    ```bash A11y Tests
+    make test-frontend-a11y
+    # or
+    cd frontend && pnpm run test:a11y
+    ```
+
+    ```bash E2E Tests
+    make test-frontend-e2e
+    # or
+    cd frontend && pnpm run test:e2e
+    ```
+
+    ```bash All Frontend
+    make test-frontend
+    ```
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+## Backend Tests
+
+### Test Configuration
+
+Backend tests use pytest with Django plugin:
+
+```toml pyproject.toml
+[tool.pytest]
+ini_options.DJANGO_CONFIGURATION = "Test"
+ini_options.DJANGO_SETTINGS_MODULE = "settings.test"
+ini_options.addopts = [
+  "--cov-config=pyproject.toml",
+  "--cov-fail-under=95",         # Minimum 95% coverage
+  "--cov-precision=2",
+  "--cov-report=term-missing",   # Show missing lines
+  "--cov-report=xml",            # Generate XML report
+  "--cov=.",                      # Coverage for all code
+  "--dist=loadscope",            # Distribute tests
+  "--numprocesses=auto",         # Parallel execution
+]
+```
+
+### Test Structure
+
+```
+backend/tests/
+├── test_models.py          # Model tests
+├── test_api.py             # REST API tests
+├── test_graphql.py         # GraphQL tests
+├── test_commands.py        # Management command tests
+├── test_integrations.py    # External service tests
+└── fixtures/               # Test fixtures
+    ├── projects.json
+    └── users.json
+```
+
+### Writing Backend Tests
+
+<Tabs>
+  <Tab title="Model Tests">
+    ```python tests/test_models.py
+    import pytest
+    from apps.owasp.models import Project
+    
+    @pytest.mark.django_db
+    class TestProjectModel:
+        def test_create_project(self):
+            """Test creating a project."""
+            project = Project.objects.create(
+                name="Test Project",
+                description="A test project",
+                level="Lab",
+                type="Code",
+            )
+            
+            assert project.name == "Test Project"
+            assert project.level == "Lab"
+            assert project.slug == "test-project"
+        
+        def test_project_str(self):
+            """Test project string representation."""
+            project = Project.objects.create(
+                name="Test Project",
+                description="Test",
+            )
+            
+            assert str(project) == "Test Project"
+        
+        def test_project_url_validation(self):
+            """Test project URL validation."""
+            with pytest.raises(ValidationError):
+                Project.objects.create(
+                    name="Test",
+                    url="not-a-url",
+                )
+    ```
+  </Tab>
+  
+  <Tab title="API Tests">
+    ```python tests/test_api.py
+    import pytest
+    from django.test import Client
+    from apps.owasp.models import Project
+    
+    @pytest.mark.django_db
+    class TestProjectsAPI:
+        def test_list_projects(self):
+            """Test listing projects."""
+            # Arrange
+            Project.objects.create(
+                name="Project 1",
+                description="Test 1",
+            )
+            Project.objects.create(
+                name="Project 2",
+                description="Test 2",
+            )
+            
+            # Act
+            client = Client()
+            response = client.get("/api/v0/projects/")
+            
+            # Assert
+            assert response.status_code == 200
+            data = response.json()
+            assert len(data["projects"]) == 2
+            assert data["projects"][0]["name"] == "Project 1"
+        
+        def test_get_project_detail(self):
+            """Test getting project detail."""
+            project = Project.objects.create(
+                name="Test Project",
+                description="Test description",
+            )
+            
+            client = Client()
+            response = client.get(f"/api/v0/projects/{project.slug}/")
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["name"] == "Test Project"
+        
+        def test_filter_projects_by_level(self):
+            """Test filtering projects by level."""
+            Project.objects.create(name="Lab", level="Lab")
+            Project.objects.create(name="Flagship", level="Flagship")
+            
+            client = Client()
+            response = client.get("/api/v0/projects/?level=Flagship")
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert len(data["projects"]) == 1
+            assert data["projects"][0]["level"] == "Flagship"
+    ```
+  </Tab>
+  
+  <Tab title="GraphQL Tests">
+    ```python tests/test_graphql.py
+    import pytest
+    from django.test import Client
+    from apps.owasp.models import Project
+    
+    @pytest.mark.django_db
+    class TestProjectsGraphQL:
+        def test_projects_query(self):
+            """Test projects GraphQL query."""
+            # Arrange
+            Project.objects.create(
+                name="Test Project",
+                description="Test",
+            )
+            
+            query = '''
+            query {
+              projects(first: 10) {
+                edges {
+                  node {
+                    id
+                    name
+                    description
+                  }
+                }
+              }
+            }
+            '''
+            
+            # Act
+            client = Client()
+            response = client.post(
+                "/graphql/",
+                {"query": query},
+                content_type="application/json",
+            )
+            
+            # Assert
+            assert response.status_code == 200
+            data = response.json()["data"]
+            assert len(data["projects"]["edges"]) == 1
+            assert data["projects"]["edges"][0]["node"]["name"] == "Test Project"
+        
+        def test_project_by_key_query(self):
+            """Test single project query."""
+            project = Project.objects.create(
+                name="Test Project",
+                description="Test description",
+            )
+            
+            query = f'''
+            query {{
+              project(key: "{project.slug}") {{
+                id
+                name
+                description
+              }}
+            }}
+            '''
+            
+            client = Client()
+            response = client.post(
+                "/graphql/",
+                {"query": query},
+                content_type="application/json",
+            )
+            
+            assert response.status_code == 200
+            data = response.json()["data"]
+            assert data["project"]["name"] == "Test Project"
+    ```
+  </Tab>
+  
+  <Tab title="Command Tests">
+    ```python tests/test_commands.py
+    import pytest
+    from io import StringIO
+    from django.core.management import call_command
+    from apps.owasp.models import Project
+    
+    @pytest.mark.django_db
+    class TestManagementCommands:
+        def test_algolia_reindex_command(self):
+            """Test algolia_reindex command."""
+            Project.objects.create(
+                name="Test Project",
+                description="Test",
+            )
+            
+            out = StringIO()
+            call_command('algolia_reindex', stdout=out)
+            
+            assert "Successfully indexed" in out.getvalue()
+        
+        def test_sync_data_command(self, mocker):
+            """Test sync_data command with mocked GitHub API."""
+            # Mock GitHub API
+            mock_github = mocker.patch('apps.github.client.Github')
+            
+            out = StringIO()
+            call_command('sync_data', stdout=out)
+            
+            assert mock_github.called
+            assert "Sync complete" in out.getvalue()
+    ```
+  </Tab>
+</Tabs>
+
+### Fixtures
+
+<Tabs>
+  <Tab title="pytest Fixtures">
+    ```python tests/conftest.py
+    import pytest
+    from apps.owasp.models import Project, Chapter
+    from apps.github.models import GitHubUser
+    
+    @pytest.fixture
+    def sample_project():
+        """Create a sample project for testing."""
+        return Project.objects.create(
+            name="Sample Project",
+            description="A sample project for testing",
+            level="Lab",
+        )
+    
+    @pytest.fixture
+    def sample_user():
+        """Create a sample GitHub user."""
+        return GitHubUser.objects.create(
+            login="testuser",
+            name="Test User",
+            email="test@example.com",
+        )
+    
+    @pytest.fixture
+    def authenticated_client(sample_user):
+        """Create an authenticated client."""
+        from django.test import Client
+        client = Client()
+        client.force_login(sample_user)
+        return client
+    ```
+
+    Usage:
+    ```python
+    def test_with_fixtures(sample_project, authenticated_client):
+        response = authenticated_client.get(
+            f"/api/v0/projects/{sample_project.slug}/"
+        )
+        assert response.status_code == 200
+    ```
+  </Tab>
+  
+  <Tab title="Django Fixtures">
+    ```json tests/fixtures/projects.json
+    [
+      {
+        "model": "owasp.project",
+        "pk": 1,
+        "fields": {
+          "name": "OWASP Top 10",
+          "description": "Top 10 Web Application Security Risks",
+          "level": "Flagship",
+          "type": "Documentation"
+        }
+      }
+    ]
+    ```
+
+    Usage:
+    ```python
+    @pytest.mark.django_db
+    def test_with_django_fixture(django_db_setup, django_db_blocker):
+        from django.core.management import call_command
+        
+        with django_db_blocker.unblock():
+            call_command('loaddata', 'tests/fixtures/projects.json')
+        
+        assert Project.objects.count() == 1
+    ```
+  </Tab>
+</Tabs>
+
+### Mocking External Services
+
+```python tests/test_integrations.py
+import pytest
+from unittest.mock import Mock, patch
+from apps.github.services import GitHubService
+
+@pytest.mark.django_db
+class TestGitHubIntegration:
+    @patch('apps.github.services.Github')
+    def test_fetch_repositories(self, mock_github):
+        """Test fetching repositories from GitHub."""
+        # Arrange
+        mock_repo = Mock()
+        mock_repo.name = "test-repo"
+        mock_repo.description = "Test repository"
+        
+        mock_org = Mock()
+        mock_org.get_repos.return_value = [mock_repo]
+        
+        mock_github.return_value.get_organization.return_value = mock_org
+        
+        # Act
+        service = GitHubService()
+        repos = service.fetch_repositories("OWASP")
+        
+        # Assert
+        assert len(repos) == 1
+        assert repos[0].name == "test-repo"
+        mock_github.return_value.get_organization.assert_called_with("OWASP")
+```
+
+## Frontend Tests
+
+### Test Configuration
+
+Frontend tests use Jest with React Testing Library:
+
+```ts jest.config.ts
+const config: Config = {
+  collectCoverage: true,
+  coverageThreshold: {
+    global: {
+      branches: 95,
+      functions: 95,
+      lines: 95,
+      statements: 95,
+    },
+  },
+  testEnvironment: 'jest-environment-jsdom',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+}
+```
+
+### Test Structure
+
+```
+frontend/__tests__/
+├── unit/                   # Unit tests
+│   ├── components/
+│   │   ├── ProjectCard.test.tsx
+│   │   └── SearchBar.test.tsx
+│   └── utils/
+│       └── formatDate.test.ts
+├── a11y/                   # Accessibility tests
+│   └── pages.test.tsx
+├── e2e/                    # End-to-end tests
+│   ├── auth.spec.ts
+│   └── projects.spec.ts
+└── mockData/               # Test data
+    └── projects.ts
+```
+
+### Writing Frontend Tests
+
+<Tabs>
+  <Tab title="Component Tests">
+    ```tsx __tests__/unit/components/ProjectCard.test.tsx
+    import { render, screen } from '@testing-library/react'
+    import { ProjectCard } from '@/components/ProjectCard'
+    
+    describe('ProjectCard', () => {
+      const mockProject = {
+        id: '1',
+        name: 'OWASP Top 10',
+        description: 'Top 10 Web Application Security Risks',
+        level: 'Flagship',
+        url: 'https://owasp.org/www-project-top-ten/',
+      }
+      
+      it('renders project information', () => {
+        render(<ProjectCard project={mockProject} />)
+        
+        expect(screen.getByText('OWASP Top 10')).toBeInTheDocument()
+        expect(screen.getByText(/Top 10 Web Application/)).toBeInTheDocument()
+        expect(screen.getByText('Flagship')).toBeInTheDocument()
+      })
+      
+      it('renders a link to the project', () => {
+        render(<ProjectCard project={mockProject} />)
+        
+        const link = screen.getByRole('link', { name: /view project/i })
+        expect(link).toHaveAttribute('href', mockProject.url)
+      })
+      
+      it('displays project level badge', () => {
+        render(<ProjectCard project={mockProject} />)
+        
+        const badge = screen.getByText('Flagship')
+        expect(badge).toHaveClass('badge-flagship')
+      })
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Hook Tests">
+    ```tsx __tests__/unit/hooks/useProjects.test.tsx
+    import { renderHook, waitFor } from '@testing-library/react'
+    import { MockedProvider } from '@apollo/client/testing'
+    import { useProjects } from '@/hooks/useProjects'
+    import { GetProjectsDocument } from '@/app/projects/queries.generated'
+    
+    describe('useProjects', () => {
+      const mocks = [
+        {
+          request: {
+            query: GetProjectsDocument,
+            variables: { first: 10 },
+          },
+          result: {
+            data: {
+              projects: {
+                edges: [
+                  {
+                    node: {
+                      id: '1',
+                      name: 'OWASP Top 10',
+                      description: 'Test',
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      ]
+      
+      it('fetches and returns projects', async () => {
+        const wrapper = ({ children }) => (
+          <MockedProvider mocks={mocks} addTypename={false}>
+            {children}
+          </MockedProvider>
+        )
+        
+        const { result } = renderHook(() => useProjects(10), { wrapper })
+        
+        expect(result.current.loading).toBe(true)
+        
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false)
+        })
+        
+        expect(result.current.projects).toHaveLength(1)
+        expect(result.current.projects[0].name).toBe('OWASP Top 10')
+      })
+    })
+    ```
+  </Tab>
+  
+  <Tab title="User Interaction">
+    ```tsx __tests__/unit/components/SearchBar.test.tsx
+    import { render, screen } from '@testing-library/react'
+    import userEvent from '@testing-library/user-event'
+    import { SearchBar } from '@/components/SearchBar'
+    
+    describe('SearchBar', () => {
+      it('updates search query on input', async () => {
+        const user = userEvent.setup()
+        const onSearch = jest.fn()
+        
+        render(<SearchBar onSearch={onSearch} />)
+        
+        const input = screen.getByPlaceholderText(/search/i)
+        await user.type(input, 'OWASP')
+        
+        expect(input).toHaveValue('OWASP')
+      })
+      
+      it('calls onSearch when form is submitted', async () => {
+        const user = userEvent.setup()
+        const onSearch = jest.fn()
+        
+        render(<SearchBar onSearch={onSearch} />)
+        
+        const input = screen.getByPlaceholderText(/search/i)
+        await user.type(input, 'OWASP{enter}')
+        
+        expect(onSearch).toHaveBeenCalledWith('OWASP')
+      })
+      
+      it('clears search on clear button click', async () => {
+        const user = userEvent.setup()
+        render(<SearchBar onSearch={jest.fn()} />)
+        
+        const input = screen.getByPlaceholderText(/search/i)
+        await user.type(input, 'OWASP')
+        
+        const clearButton = screen.getByRole('button', { name: /clear/i })
+        await user.click(clearButton)
+        
+        expect(input).toHaveValue('')
+      })
+    })
+    ```
+  </Tab>
+</Tabs>
+
+### Accessibility Tests
+
+```tsx __tests__/a11y/pages.test.tsx
+import { render } from '@testing-library/react'
+import { axe, toHaveNoViolations } from 'jest-axe'
+import Home from '@/app/page'
+
+expect.extend(toHaveNoViolations)
+
+describe('Accessibility', () => {
+  it('home page has no accessibility violations', async () => {
+    const { container } = render(<Home />)
+    const results = await axe(container)
+    
+    expect(results).toHaveNoViolations()
+  })
+  
+  it('projects page has no accessibility violations', async () => {
+    const { container } = render(<ProjectsPage />)
+    const results = await axe(container)
+    
+    expect(results).toHaveNoViolations()
+  })
+})
+```
+
+### E2E Tests with Playwright
+
+```ts __tests__/e2e/projects.spec.ts
+import { test, expect } from '@playwright/test'
+
+test.describe('Projects', () => {
+  test('should display project list', async ({ page }) => {
+    await page.goto('/projects')
+    
+    // Check page title
+    await expect(page).toHaveTitle(/Projects/)
+    
+    // Check projects are displayed
+    const projects = page.locator('[data-testid="project-card"]')
+    await expect(projects).toHaveCount(10)
+  })
+  
+  test('should filter projects by level', async ({ page }) => {
+    await page.goto('/projects')
+    
+    // Select filter
+    await page.selectOption('[name="level"]', 'Flagship')
+    
+    // Wait for results
+    await page.waitForLoadState('networkidle')
+    
+    // Check filtered results
+    const projects = page.locator('[data-testid="project-card"]')
+    const firstProject = projects.first()
+    await expect(firstProject).toContainText('Flagship')
+  })
+  
+  test('should navigate to project detail', async ({ page }) => {
+    await page.goto('/projects')
+    
+    // Click first project
+    await page.click('[data-testid="project-card"]:first-child a')
+    
+    // Check detail page
+    await expect(page).toHaveURL(/\/projects\/[^/]+$/)
+    await expect(page.locator('h1')).toBeVisible()
+  })
+})
+```
+
+## Fuzz Testing
+
+Fuzz testing tests API endpoints with random/invalid inputs:
+
+```bash
+make test-fuzz
+```
+
+Uses Schemathesis to automatically generate test cases from OpenAPI schema:
+
+```python
+import schemathesis
+
+schema = schemathesis.from_uri("http://backend:8000/api/docs/openapi.json")
+
+@schema.parametrize()
+def test_api_fuzzing(case):
+    case.call_and_validate()
+```
+
+## Security Scanning
+
+### Code Security
+
+```bash
+make security-scan-code
+```
+
+Runs:
+- **Semgrep** - Static analysis for security patterns
+- **Trivy** - Vulnerability scanning
+
+### Image Security
+
+```bash
+make security-scan-images
+```
+
+Scans Docker images for:
+- Known vulnerabilities
+- Misconfigurations
+- Exposed secrets
+
+### ZAP Scanning
+
+```bash
+make security-scan-zap
+```
+
+Runs OWASP ZAP baseline scan for:
+- XSS vulnerabilities
+- SQL injection
+- CSRF issues
+- Security headers
+
+## Coverage Reports
+
+### Viewing Coverage
+
+<Tabs>
+  <Tab title="Backend">
+    ```bash
+    # Run tests (generates coverage.xml)
+    make test-backend
+    
+    # View in terminal
+    # Coverage report shown after tests
+    
+    # Open HTML report
+    cd backend
+    coverage html
+    open htmlcov/index.html
+    ```
+  </Tab>
+  
+  <Tab title="Frontend">
+    ```bash
+    # Run tests (generates coverage/)
+    make test-frontend-unit
+    
+    # Open HTML report
+    cd frontend
+    open coverage/lcov-report/index.html
+    ```
+  </Tab>
+</Tabs>
+
+### Coverage Thresholds
+
+Both backend and frontend require **95% coverage**:
+
+<CodeGroup>
+```toml Backend (pyproject.toml)
+[tool.pytest]
+ini_options.addopts = [
+  "--cov-fail-under=95",
+]
+```
+
+```ts Frontend (jest.config.ts)
+coverageThreshold: {
+  global: {
+    branches: 95,
+    functions: 95,
+    lines: 95,
+    statements: 95,
+  },
+}
+```
+</CodeGroup>
+
+## CI/CD Integration
+
+Tests run automatically on every pull request:
+
+```yaml .github/workflows/test.yml
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run backend tests
+        run: make test-backend
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+  
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run frontend tests
+        run: make test-frontend
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Write Tests First">
+    Follow Test-Driven Development (TDD):
+    1. Write failing test
+    2. Implement feature
+    3. Make test pass
+    4. Refactor
+  </Accordion>
+  
+  <Accordion title="Test Behavior, Not Implementation">
+    ```tsx
+    // Bad: Testing implementation
+    expect(component.state.count).toBe(1)
+    
+    // Good: Testing behavior
+    expect(screen.getByText('Count: 1')).toBeInTheDocument()
+    ```
+  </Accordion>
+  
+  <Accordion title="Use Descriptive Test Names">
+    ```python
+    # Bad
+    def test_project():
+        pass
+    
+    # Good
+    def test_create_project_with_valid_data_succeeds():
+        pass
+    ```
+  </Accordion>
+  
+  <Accordion title="Mock External Dependencies">
+    Always mock:
+    - External APIs (GitHub, Slack, OpenAI)
+    - File system operations
+    - Network requests
+    - Time-dependent functions
+  </Accordion>
+  
+  <Accordion title="Keep Tests Independent">
+    Each test should:
+    - Run independently
+    - Not depend on other tests
+    - Clean up after itself
+    - Use fixtures for setup
+  </Accordion>
+  
+  <Accordion title="Test Edge Cases">
+    Test:
+    - Empty inputs
+    - Invalid data
+    - Boundary conditions
+    - Error scenarios
+  </Accordion>
+</AccordionGroup>
+
+## Debugging Tests
+
+<Tabs>
+  <Tab title="Backend">
+    ```python
+    # Add breakpoint
+    import pdb; pdb.set_trace()
+    
+    # Run single test
+    pytest tests/test_models.py::TestProjectModel::test_create_project
+    
+    # Run with verbose output
+    pytest -vv
+    
+    # Show print statements
+    pytest -s
+    ```
+  </Tab>
+  
+  <Tab title="Frontend">
+    ```bash
+    # Run single test file
+    pnpm run test:unit ProjectCard.test.tsx
+    
+    # Run in watch mode
+    pnpm run test:unit --watch
+    
+    # Debug in VS Code
+    # Add to .vscode/launch.json:
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Jest Debug",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "args": ["--runInBand"],
+      "console": "integratedTerminal"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Contributing" icon="code-pull-request" href="/contributing">
+    Submit your changes
+  </Card>
+  <Card title="Backend Guide" icon="python" href="/development/backend">
+    Backend development
+  </Card>
+  <Card title="Frontend Guide" icon="react" href="/development/frontend">
+    Frontend development
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/development/architecture">
+    System architecture
+  </Card>
+</CardGroup>

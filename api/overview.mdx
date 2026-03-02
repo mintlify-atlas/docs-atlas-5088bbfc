@@ -1,0 +1,310 @@
+---
+title: API Overview
+description: Overview of the OWASP Nest REST and GraphQL APIs
+---
+
+OWASP Nest provides both REST and GraphQL APIs to access OWASP project data, GitHub issues, events, and more.
+
+## Base URLs
+
+<Tabs>
+  <Tab title="REST API">
+    The REST API is versioned and available at:
+    
+    ```
+    https://owasp.org/api/v0/
+    ```
+    
+    Current version: `v0.3.6`
+    
+    **Available endpoints:**
+    - `/chapters` - OWASP chapters
+    - `/committees` - OWASP committees  
+    - `/events` - OWASP events
+    - `/issues` - GitHub issues
+    - `/members` - OWASP members
+    - `/milestones` - Project milestones
+    - `/organizations` - GitHub organizations
+    - `/projects` - OWASP projects
+    - `/releases` - Project releases
+    - `/repositories` - GitHub repositories
+    - `/snapshots` - Data snapshots
+    - `/sponsors` - OWASP sponsors
+  </Tab>
+  
+  <Tab title="GraphQL API">
+    The GraphQL API provides a single endpoint:
+    
+    ```
+    https://owasp.org/graphql/
+    ```
+    
+    **Available queries:**
+    - `apiKeys` - User's API keys
+    - `activeApiKeyCount` - Count of active API keys
+    - GitHub data queries
+    - OWASP entity queries
+    - Mentorship program queries
+    
+    **Available mutations:**
+    - `createApiKey` - Create a new API key
+    - `revokeApiKey` - Revoke an existing API key
+    - Other entity mutations
+  </Tab>
+</Tabs>
+
+## REST vs GraphQL
+
+### When to Use REST
+
+Use the REST API when:
+- You need paginated lists of resources
+- You want simple, cacheable GET requests
+- You're building integrations with standard HTTP clients
+- You need to filter and order results
+
+**Example: List projects**
+```bash
+curl -H "X-API-Key: your_api_key" \
+  "https://owasp.org/api/v0/projects/?page=1&page_size=10&level=flagship"
+```
+
+### When to Use GraphQL
+
+Use the GraphQL API when:
+- You need to fetch multiple related resources in one request
+- You want to specify exact fields to return
+- You're managing API keys programmatically
+- You need mutations (create/update/delete operations)
+
+**Example: Create API key**
+```graphql
+mutation {
+  createApiKey(
+    name: "My Integration Key"
+    expiresAt: "2026-12-31T23:59:59Z"
+  ) {
+    ok
+    rawKey
+    apiKey {
+      uuid
+      name
+      expiresAt
+    }
+  }
+}
+```
+
+## API Features
+
+### Pagination
+
+REST endpoints return paginated results with the following structure:
+
+```json
+{
+  "current_page": 1,
+  "total_pages": 10,
+  "total_count": 95,
+  "has_next": true,
+  "has_previous": false,
+  "items": [
+    // ... resource objects
+  ]
+}
+```
+
+**Pagination parameters:**
+- `page` - Page number (default: 1, minimum: 1)
+- `page_size` - Items per page (default: 100, maximum: 100)
+
+Source: `backend/apps/api/rest/v0/pagination.py:15-20`
+
+### Ordering
+
+Most list endpoints support ordering via the `ordering` parameter:
+
+```bash
+# Sort by creation date (newest first)
+GET /api/v0/projects/?ordering=-created_at
+
+# Sort by update date (oldest first)  
+GET /api/v0/projects/?ordering=updated_at
+```
+
+**Common ordering fields:**
+- `created_at` / `-created_at`
+- `updated_at` / `-updated_at`
+
+<Note>
+  Prefix field names with `-` for descending order.
+</Note>
+
+### Filtering
+
+Endpoints support various filters based on the resource type:
+
+**Project filters:**
+```bash
+# Filter by project level
+GET /api/v0/projects/?level=flagship
+
+# Structured search query
+GET /api/v0/projects/?q=name:security+stars:>100
+```
+
+**Issue filters:**
+```bash
+# Filter by organization and repository
+GET /api/v0/issues/?organization=OWASP&repository=Nest&state=open
+```
+
+Source: `backend/apps/api/rest/v0/project.py:73-84`, `backend/apps/api/rest/v0/issue.py:47-64`
+
+### Structured Search
+
+Some endpoints support structured search queries with field-specific operators:
+
+```bash
+GET /api/v0/projects/?q=name:security+stars:>100
+```
+
+**Available operators:**
+- String fields: Contains match (case-insensitive)
+- Number fields: `>`, `<`, `>=`, `<=`, `=`
+
+Source: `backend/apps/api/rest/v0/project.py:19-28`
+
+## Rate Limiting
+
+The REST API enforces rate limits to ensure fair usage:
+
+<Warning>
+  **Production environment:** 10 requests per second per API key
+</Warning>
+
+<Note>
+  Rate limiting is disabled in local, E2E, and fuzz test environments.
+</Note>
+
+Rate limit configuration: `backend/apps/api/rest/v0/__init__.py:46`
+
+When you exceed the rate limit, you'll receive a `429 Too Many Requests` response.
+
+## Error Handling
+
+### REST API Errors
+
+REST endpoints return standard HTTP status codes:
+
+- `200 OK` - Successful request
+- `400 Bad Request` - Invalid request parameters
+- `401 Unauthorized` - Missing or invalid API key
+- `404 Not Found` - Resource not found
+- `429 Too Many Requests` - Rate limit exceeded
+
+**Validation error response:**
+```json
+{
+  "message": "Invalid request",
+  "errors": [
+    {
+      "loc": ["query", "page"],
+      "msg": "value is not a valid integer",
+      "type": "type_error.integer"
+    }
+  ]
+}
+```
+
+Source: `backend/apps/api/rest/v0/__init__.py:107-114`
+
+### GraphQL Errors
+
+GraphQL mutations return result objects with error information:
+
+```json
+{
+  "data": {
+    "createApiKey": {
+      "ok": false,
+      "code": "LIMIT_REACHED",
+      "message": "You can have at most 3 active API keys.",
+      "apiKey": null,
+      "rawKey": null
+    }
+  }
+}
+```
+
+**Common error codes:**
+- `INVALID_NAME` - API key name is invalid
+- `INVALID_DATE` - Expiry date must be in the future
+- `LIMIT_REACHED` - Maximum active API keys reached (3)
+- `NOT_FOUND` - API key not found
+- `ERROR` - General error
+
+Source: `backend/apps/api/internal/mutations/api_key.py:20-37`
+
+## GraphQL Schema
+
+The GraphQL API uses Strawberry with the following features:
+
+- **Query depth limit:** Maximum 5 levels deep
+- **Introspection:** Disabled in production (enabled in debug mode)
+- **CSRF protection:** Required for all mutations
+
+Source: `backend/settings/graphql.py:46-54`
+
+### GraphQL Introspection
+
+<Note>
+  In development environments, you can explore the full schema using GraphiQL at `/graphql/`
+</Note>
+
+## Interactive Documentation
+
+### REST API Documentation
+
+The REST API provides interactive Swagger documentation:
+
+```
+https://owasp.org/api/v0/docs
+```
+
+The Swagger UI allows you to:
+- Browse all available endpoints
+- View request/response schemas
+- Test endpoints directly in the browser
+- Authorize with your API key (persists across page refreshes)
+
+Source: `backend/apps/api/rest/v0/__init__.py:45`
+
+### GraphQL Playground
+
+In development mode, GraphiQL is available at:
+
+```
+http://localhost:8000/graphql/
+```
+
+<Warning>
+  GraphiQL is only available when `DEBUG=True`. It is disabled in production.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/api/authentication">
+    Learn how to authenticate API requests with API keys
+  </Card>
+  <Card title="REST API Reference" icon="code" href="/api/rest/projects">
+    Explore REST endpoints and schemas
+  </Card>
+  <Card title="GraphQL API Reference" icon="diagram-project" href="/api/graphql/overview">
+    Browse GraphQL queries and mutations
+  </Card>
+  <Card title="Rate Limits" icon="gauge" href="/api/rate-limits">
+    Understand rate limiting policies
+  </Card>
+</CardGroup>

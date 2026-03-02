@@ -1,0 +1,355 @@
+---
+title: Contributing to OWASP Projects
+description: Learn how to contribute to OWASP projects using Nest
+icon: code
+---
+
+OWASP Nest makes it easy to find and contribute to OWASP projects. This guide walks you through the entire contribution process, from setup to pull request.
+
+## Prerequisites
+
+Before contributing to OWASP projects through Nest, ensure you have:
+
+<CardGroup cols={2}>
+  <Card title="Docker" icon="docker">
+    Required for running Nest locally
+  </Card>
+  <Card title="pre-commit" icon="git">
+    Automates code quality checks
+  </Card>
+  <Card title="Git" icon="github">
+    Version control for your contributions
+  </Card>
+  <Card title="GitHub Account" icon="user">
+    Required to submit pull requests
+  </Card>
+</CardGroup>
+
+<Note>
+  **Windows Users**: WSL (Windows Subsystem for Linux) is required. Use the WSL terminal, not PowerShell, to avoid setup issues.
+</Note>
+
+## Getting Started
+
+<Steps>
+  <Step title="Star and Fork the Repository">
+    Start by starring the project on GitHub to show your support, then fork it to your account.
+    
+    ```bash
+    # Clone your fork
+    git clone https://github.com/<your-account>/<repository-name>
+    cd <repository-name>
+    ```
+  </Step>
+
+  <Step title="Set Up Your Development Environment">
+    Copy the environment files and configure them:
+    
+    ```bash
+    # Backend environment
+    cp backend/.env.example backend/.env
+    
+    # Frontend environment
+    cp frontend/.env.example frontend/.env
+    ```
+    
+    <Warning>
+      Ensure all `.env` files are saved in **UTF-8 format without BOM** to prevent "Unexpected character" errors.
+    </Warning>
+  </Step>
+
+  <Step title="Configure Algolia Search">
+    1. Create a free account at [Algolia](https://www.algolia.com/)
+    2. Get your Application ID and Write API Key from the dashboard
+    3. Update `backend/.env`:
+    
+    ```plaintext
+    DJANGO_ALGOLIA_APPLICATION_ID=<your-application-id>
+    DJANGO_ALGOLIA_WRITE_API_KEY=<your-write-api-key>
+    ```
+  </Step>
+
+  <Step title="Run the Application">
+    Start the development environment (this must remain running):
+    
+    ```bash
+    make run
+    ```
+    
+    Wait until the API responds at [http://localhost:8000/api/v0](http://localhost:8000/api/v0)
+  </Step>
+
+  <Step title="Load Initial Data">
+    Open a new terminal session and populate the database:
+    
+    ```bash
+    # Load fixtures (requires gzip)
+    make load-data
+    
+    # Index data in Algolia
+    make index-data
+    ```
+  </Step>
+
+  <Step title="Verify Setup">
+    Check that these endpoints are accessible:
+    - [API](http://localhost:8000/api/v0/)
+    - [GraphQL](http://localhost:8000/graphql/)
+    - [Frontend](http://localhost:3000)
+  </Step>
+</Steps>
+
+## Contribution Workflow
+
+<Steps>
+  <Step title="Find or Create an Issue">
+    - Browse the [Issues tab](https://github.com/OWASP/Nest/issues) for open issues
+    - Look for `good first issue` labels if you're new to the project
+    - Found a bug? Create a new issue describing the problem
+    
+    <Warning>
+      **You must be assigned to an issue before submitting a PR.** PRs without assignment will be automatically closed.
+    </Warning>
+  </Step>
+
+  <Step title="Sync Your Fork">
+    Before starting work, ensure your fork is up to date:
+    
+    ```bash
+    # Add upstream remote (first time only)
+    git remote add upstream https://github.com/OWASP/Nest.git
+    
+    # Update your local main branch
+    git checkout main
+    git fetch upstream
+    git merge upstream/main
+    ```
+  </Step>
+
+  <Step title="Create a Feature Branch">
+    Always work in a separate branch:
+    
+    ```bash
+    git checkout -b feature/my-feature-name
+    ```
+  </Step>
+
+  <Step title="Make Your Changes">
+    - Write clean, well-documented code
+    - Add tests for new functionality
+    - Ensure your changes only include related files
+    - Follow the existing code style and patterns
+  </Step>
+
+  <Step title="Run Quality Checks">
+    **This is a required step** - you will not be assigned to new issues if you skip this:
+    
+    ```bash
+    make check-test
+    ```
+    
+    This command runs:
+    - Code linters (frontend and backend)
+    - Static analysis tools
+    - Test suites
+    - Coverage checks
+    
+    <Warning>
+      Your PR won't be reviewed until all checks pass and meet coverage thresholds.
+    </Warning>
+  </Step>
+
+  <Step title="Commit Your Changes">
+    Write meaningful commit messages:
+    
+    ```bash
+    git add .
+    git commit -m "Add feature: concise description of changes"
+    ```
+  </Step>
+
+  <Step title="Push to Your Fork">
+    ```bash
+    git push origin feature/my-feature-name
+    ```
+  </Step>
+
+  <Step title="Create a Draft Pull Request">
+    1. Go to the original repository on GitHub
+    2. Click "New Pull Request"
+    3. Select your fork and branch
+    4. **Mark it as a Draft PR**
+    5. Wait for automated checks to complete
+  </Step>
+
+  <Step title="Address Automated Review Comments">
+    Review and resolve all comments from:
+    - **CodeRabbit**: Code quality suggestions
+    - **SonarQube**: Security and maintainability issues
+    - **GitHub Advanced Security**: Security vulnerabilities
+    
+    <Tip>
+      If you disagree with a suggestion, mark it as resolved with a brief explanation.
+    </Tip>
+  </Step>
+
+  <Step title="Mark PR as Ready for Review">
+    Once all automated comments are resolved and CI/CD passes:
+    1. Mark the PR as "Ready for Review"
+    2. Request review from project maintainers
+    3. Wait for human reviewers' feedback
+  </Step>
+
+  <Step title="Address Reviewer Feedback">
+    - If maintainers request changes, mark the PR as Draft again
+    - Make the requested changes
+    - Run `make check-test` again
+    - Push updates and mark as Ready for Review
+  </Step>
+</Steps>
+
+## Optional: Fetching GitHub Data
+
+If you need to work with live GitHub data:
+
+<Steps>
+  <Step title="Create a Superuser">
+    ```bash
+    make create-superuser
+    ```
+  </Step>
+
+  <Step title="Generate GitHub Token">
+    Create a [personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) on GitHub.
+  </Step>
+
+  <Step title="Update Environment">
+    Add the token to `backend/.env`:
+    
+    ```plaintext
+    GITHUB_TOKEN=<your-github-token>
+    ```
+  </Step>
+
+  <Step title="Sync Data">
+    ```bash
+    make sync-data
+    ```
+  </Step>
+</Steps>
+
+## Testing Your Contributions
+
+### Run All Tests
+
+```bash
+make test
+```
+
+### Run Specific Test Types
+
+<Tabs>
+  <Tab title="Frontend Tests">
+    ```bash
+    make test-frontend
+    ```
+  </Tab>
+  
+  <Tab title="Backend Tests">
+    ```bash
+    make test-backend
+    ```
+  </Tab>
+  
+  <Tab title="E2E Tests">
+    ```bash
+    make test-frontend-e2e
+    ```
+  </Tab>
+  
+  <Tab title="Security Scans">
+    ```bash
+    make security-scan
+    ```
+  </Tab>
+</Tabs>
+
+## Test Coverage Requirements
+
+- **Backend**: Minimum coverage defined in `backend/pyproject.toml`
+- **Frontend**: Minimum coverage defined in `frontend/jest.config.ts`
+
+<Warning>
+  PRs that decrease overall test coverage will not be merged.
+</Warning>
+
+## Accessing Internal Dashboards
+
+Some features require specific permissions for local development:
+
+<Accordion title="Project Health Dashboard (Staff Access)">
+  1. Start the backend and open Django Admin at [http://localhost:8000/a](http://localhost:8000/a)
+  2. Navigate to **GitHub Users** and open your user record
+  3. Enable the `is_owasp_staff` checkbox in the Permissions section
+  4. Clear browser cookies for `localhost:3000`
+  5. Sign in again - the dashboard will appear in the user menu
+</Accordion>
+
+<Accordion title="Mentorship Portal">
+  **Option 1: As Project Leader**
+  1. Open Django Admin → **OWASP** → **Projects**
+  2. Open or create a project
+  3. Add your GitHub username to the `leaders_raw` field
+  
+  **Option 2: As Mentor**
+  1. Open Django Admin → **Mentorship** → **Mentors**
+  2. Click **Add Mentor**
+  3. Select your GitHub user
+  
+  After either option, clear cookies and sign in again.
+</Accordion>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title='"Unexpected character" error'>
+    This error occurs when `.env` files have incorrect encoding.
+    
+    **Solution**: Open each `.env` file in VS Code:
+    1. Click the encoding indicator in the bottom-right corner
+    2. Select "Save with Encoding"
+    3. Choose "UTF-8" (not "UTF-8 with BOM")
+    4. Restart with `make run`
+  </Accordion>
+  
+  <Accordion title="Docker permission issues on Windows">
+    Ensure:
+    - WSL integration is enabled in Docker Desktop
+    - You're using WSL terminal, not PowerShell
+    - Project is **not** cloned under `/mnt/c` (Windows C: drive)
+  </Accordion>
+  
+  <Accordion title="Algolia indexing fails">
+    Verify:
+    - Your API key has `addObject` permission
+    - Application ID and API Key are correct in `backend/.env`
+    - You're using the Write API Key, not the Search API Key
+  </Accordion>
+</AccordionGroup>
+
+## Code of Conduct
+
+All contributors must follow the [OWASP Code of Conduct](https://github.com/OWASP/Nest/blob/main/CODE_OF_CONDUCT.md). Be respectful, inclusive, and professional in all interactions.
+
+## Getting Help
+
+If you encounter issues:
+
+1. Check the [Troubleshooting](#troubleshooting) section
+2. Search existing [GitHub Issues](https://github.com/OWASP/Nest/issues)
+3. Ask in the project's discussion forums
+4. Reach out to project maintainers
+
+<Tip>
+  Start with `good first issue` labels to get familiar with the contribution process!
+</Tip>

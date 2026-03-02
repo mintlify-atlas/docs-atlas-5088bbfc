@@ -1,0 +1,320 @@
+---
+title: 'Members API'
+description: 'Retrieve OWASP community members using the REST API'
+---
+
+## List Members
+
+<ParamField query="GET" path="/api/v0/members/">
+  Retrieve a paginated list of OWASP community members.
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="company" type="string" optional>
+  Filter members by company name.
+  
+  Example: `OWASP Foundation`
+</ParamField>
+
+<ParamField query="location" type="string" optional>
+  Filter members by location.
+  
+  Example: `San Francisco, CA`
+</ParamField>
+
+<ParamField query="ordering" type="string" optional>
+  Sort results by field. Prefix with `-` for descending order.
+  - `created_at` - Creation date (ascending)
+  - `-created_at` - Creation date (descending)
+  - `updated_at` - Last update date (ascending)
+  - `-updated_at` - Last update date (descending)
+  
+  Default: `-created_at`
+</ParamField>
+
+<ParamField query="page" type="integer" optional>
+  Page number for pagination. Default: `1`
+</ParamField>
+
+<ParamField query="limit" type="integer" optional>
+  Number of results per page. Default: `100`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="items" type="array">
+  Array of member objects
+  
+  <Expandable title="Member Object">
+    <ResponseField name="avatar_url" type="string">
+      URL to the member's avatar image
+    </ResponseField>
+    
+    <ResponseField name="created_at" type="datetime">
+      ISO 8601 timestamp when the member profile was created
+    </ResponseField>
+    
+    <ResponseField name="login" type="string">
+      Member's GitHub username/login
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Member's display name
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="datetime">
+      ISO 8601 timestamp when the member profile was last updated
+    </ResponseField>
+    
+    <ResponseField name="url" type="string">
+      GitHub profile URL
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="count" type="integer">
+  Total number of members matching the filter
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List all members
+    curl -X GET "https://nest.owasp.org/api/v0/members/"
+    
+    # Filter by company
+    curl -X GET "https://nest.owasp.org/api/v0/members/?company=OWASP%20Foundation"
+    
+    # Filter by location
+    curl -X GET "https://nest.owasp.org/api/v0/members/?location=San%20Francisco%2C%20CA"
+    
+    # Sort by creation date (oldest first)
+    curl -X GET "https://nest.owasp.org/api/v0/members/?ordering=created_at"
+    
+    # Sort by update date (most recently updated first)
+    curl -X GET "https://nest.owasp.org/api/v0/members/?ordering=-updated_at"
+    
+    # Pagination
+    curl -X GET "https://nest.owasp.org/api/v0/members/?page=1&limit=20"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # List all members
+    response = requests.get("https://nest.owasp.org/api/v0/members/")
+    members = response.json()
+    
+    # Filter by company
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/members/",
+        params={"company": "OWASP Foundation"}
+    )
+    
+    # Filter by location
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/members/",
+        params={"location": "San Francisco, CA"}
+    )
+    
+    # Sort by creation date (oldest first)
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/members/",
+        params={"ordering": "created_at"}
+    )
+    
+    # Pagination
+    response = requests.get(
+        "https://nest.owasp.org/api/v0/members/",
+        params={"page": 1, "limit": 20}
+    )
+    
+    # Print member information
+    for member in members['items']:
+        print(f"{member['name']} (@{member['login']})")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // List all members
+    const response = await fetch('https://nest.owasp.org/api/v0/members/');
+    const members = await response.json();
+    
+    // Filter by company
+    const companyUrl = new URL('https://nest.owasp.org/api/v0/members/');
+    companyUrl.searchParams.set('company', 'OWASP Foundation');
+    const companyResponse = await fetch(companyUrl);
+    
+    // Filter by location
+    const locationUrl = new URL('https://nest.owasp.org/api/v0/members/');
+    locationUrl.searchParams.set('location', 'San Francisco, CA');
+    const locationResponse = await fetch(locationUrl);
+    
+    // Sort by creation date (oldest first)
+    const sortedUrl = new URL('https://nest.owasp.org/api/v0/members/');
+    sortedUrl.searchParams.set('ordering', 'created_at');
+    const sortedResponse = await fetch(sortedUrl);
+    
+    // Pagination
+    const paginatedUrl = new URL('https://nest.owasp.org/api/v0/members/');
+    paginatedUrl.searchParams.set('page', '1');
+    paginatedUrl.searchParams.set('limit', '20');
+    const paginatedResponse = await fetch(paginatedUrl);
+    
+    // Print member information
+    members.items.forEach(member => {
+      console.log(`${member.name} (@${member.login})`);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Member
+
+<ParamField query="GET" path="/api/v0/members/{member_id}">
+  Retrieve detailed information about a specific OWASP community member.
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="member_id" type="string" required>
+  Member's GitHub username/login.
+  
+  Example: `OWASP`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="avatar_url" type="string">
+  URL to the member's avatar image
+</ResponseField>
+
+<ResponseField name="created_at" type="datetime">
+  ISO 8601 timestamp when the member profile was created
+</ResponseField>
+
+<ResponseField name="login" type="string">
+  Member's GitHub username/login
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Member's display name
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  ISO 8601 timestamp when the member profile was last updated
+</ResponseField>
+
+<ResponseField name="url" type="string">
+  GitHub profile URL
+</ResponseField>
+
+<ResponseField name="bio" type="string">
+  Member's biography
+</ResponseField>
+
+<ResponseField name="company" type="string">
+  Member's company
+</ResponseField>
+
+<ResponseField name="followers_count" type="integer">
+  Number of GitHub followers
+</ResponseField>
+
+<ResponseField name="following_count" type="integer">
+  Number of GitHub users the member is following
+</ResponseField>
+
+<ResponseField name="location" type="string">
+  Member's location
+</ResponseField>
+
+<ResponseField name="public_repositories_count" type="integer">
+  Number of public repositories
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Member's job title
+</ResponseField>
+
+<ResponseField name="twitter_username" type="string">
+  Member's Twitter/X username
+</ResponseField>
+
+### Error Responses
+
+<ResponseField name="404 Not Found" type="object">
+  <Expandable title="Error Schema">
+    <ResponseField name="message" type="string">
+      Error message: "Member not found"
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get member by username
+    curl -X GET "https://nest.owasp.org/api/v0/members/OWASP"
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # Get member details
+    member_id = "OWASP"
+    response = requests.get(f"https://nest.owasp.org/api/v0/members/{member_id}")
+    
+    if response.status_code == 200:
+        member = response.json()
+        print(f"Name: {member['name']}")
+        print(f"Login: {member['login']}")
+        print(f"Bio: {member['bio']}")
+        print(f"Company: {member['company']}")
+        print(f"Location: {member['location']}")
+        print(f"Title: {member['title']}")
+        print(f"Followers: {member['followers_count']}")
+        print(f"Following: {member['following_count']}")
+        print(f"Public Repos: {member['public_repositories_count']}")
+        print(f"Twitter: @{member['twitter_username']}")
+    elif response.status_code == 404:
+        print("Member not found")
+    ```
+  </Tab>
+  
+  <Tab title="JavaScript">
+    ```javascript
+    // Get member details
+    const memberId = 'OWASP';
+    const response = await fetch(`https://nest.owasp.org/api/v0/members/${memberId}`);
+    
+    if (response.ok) {
+      const member = await response.json();
+      console.log(`Name: ${member.name}`);
+      console.log(`Login: ${member.login}`);
+      console.log(`Bio: ${member.bio}`);
+      console.log(`Company: ${member.company}`);
+      console.log(`Location: ${member.location}`);
+      console.log(`Title: ${member.title}`);
+      console.log(`Followers: ${member.followers_count}`);
+      console.log(`Following: ${member.following_count}`);
+      console.log(`Public Repos: ${member.public_repositories_count}`);
+      console.log(`Twitter: @${member.twitter_username}`);
+    } else if (response.status === 404) {
+      console.log('Member not found');
+    }
+    ```
+  </Tab>
+</Tabs>

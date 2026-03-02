@@ -1,80 +1,153 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get started with OWASP Nest in minutes
+icon: rocket
 ---
 
-## Get started in three steps
+This quickstart guide will help you explore OWASP projects, find contribution opportunities, and connect with the security community.
 
-Get your documentation site running locally and make your first customization.
+## Visit OWASP Nest
 
-### Step 1: Set up your local environment
+Navigate to [nest.owasp.org](https://nest.owasp.org) to access the platform.
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+The home page displays:
+- Recent OWASP projects and their activity
+- Upcoming community events
+- Open issues across projects
+- Recent releases and milestones
+- Interactive chapters map
 
-### Step 2: Deploy your changes
+## Search for Projects
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+<Steps>
+  <Step title="Access the Search Bar">
+    Use the search bar at the top of any page to find projects, issues, chapters, or community members.
+  </Step>
+  
+  <Step title="Try Search Filters">
+    Filter projects by:
+    - **Level**: Flagship, Production, Lab, Incubator
+    - **Stars**: GitHub star count
+    - **Activity**: Recent commits and updates
+    - **Language**: Programming language
+  </Step>
+  
+  <Step title="Use Structured Search">
+    Try advanced queries like:
+    ```
+    name:security stars:>100
+    level:production language:Python
+    ```
+  </Step>
+</Steps>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+<Info>
+  Learn more about search syntax in the [Search Guide](/guides/using-search).
+</Info>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+## Explore Project Details
 
-### Step 3: Go live
+Click on any project to view:
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+- **Project Overview**: Description, level, and type
+- **GitHub Statistics**: Stars, forks, contributors, open issues
+- **Health Metrics**: Activity score, maintenance status
+- **Open Issues**: Contribution opportunities with labels
+- **Recent Releases**: Latest versions and changelogs
+- **Project Leaders**: Contact information for maintainers
 
-## Next steps
+## Find Issues to Contribute
 
-Now that you have your docs running, explore these key features:
+<Steps>
+  <Step title="Browse Issues">
+    Navigate to the Issues page or use the search to filter by:
+    - `good first issue` - Beginner-friendly tasks
+    - `help wanted` - Projects seeking contributors
+    - Programming language or technology
+  </Step>
+  
+  <Step title="Review Issue Details">
+    Each issue shows:
+    - Title and description
+    - Associated project and repository
+    - Labels indicating difficulty and type
+    - GitHub link to view full details
+  </Step>
+  
+  <Step title="Start Contributing">
+    Click through to GitHub, read the contributing guidelines, and submit your pull request.
+  </Step>
+</Steps>
+
+<Tip>
+  Check the [Finding Issues Guide](/guides/finding-issues) for strategies to find issues matching your skills.
+</Tip>
+
+## Connect with Community
+
+### Join OWASP Slack
+
+1. Visit [owasp.org/slack/invite](https://owasp.org/slack/invite) to join
+2. Find the [#project-nest](https://owasp.slack.com/archives/project-nest) channel
+3. Use NestBot commands like `/projects`, `/chapters`, `/events`
+
+### Use NestBot Commands
+
+Try these Slack commands:
+
+- `/projects security` - Search for security-related projects
+- `/chapters London` - Find chapters near London
+- `/events upcoming` - See upcoming OWASP events
+- `/ai explain this issue` - Get AI-powered insights
+- `/contribute python` - Find Python contribution opportunities
+
+### Find Local Chapters
+
+<Steps>
+  <Step title="Open the Chapters Map">
+    Navigate to the Chapters page to see the interactive map.
+  </Step>
+  
+  <Step title="Share Your Location">
+    Click the location icon to find chapters near you.
+  </Step>
+  
+  <Step title="Connect">
+    Click on chapter markers to view details and join their Slack channels.
+  </Step>
+</Steps>
+
+## Track Activity
+
+### Subscribe to Events
+
+- View upcoming AppSec conferences and meetups
+- Add events to your calendar (ICS format)
+- Filter by location and event type
+
+### Monitor Project Updates
+
+- Watch recent releases across OWASP projects
+- Track milestone completion
+- Follow pull request activity
+
+## Next Steps
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Explore Features" icon="compass" href="/features/search">
+    Learn about advanced search, AI insights, and more
+  </Card>
+  <Card title="Start Contributing" icon="code" href="/guides/contributing">
+    Follow the contribution guide to make your first impact
+  </Card>
+  <Card title="Join Slack" icon="slack" href="https://owasp.org/slack/invite">
+    Connect with the OWASP community
+  </Card>
+  <Card title="Find Chapters" icon="map-location-dot" href="/guides/chapters-map">
+    Discover OWASP chapters near you
+  </Card>
 </CardGroup>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  OWASP Nest is open source! Contribute to the platform itself at [github.com/OWASP/Nest](https://github.com/OWASP/Nest).
 </Note>

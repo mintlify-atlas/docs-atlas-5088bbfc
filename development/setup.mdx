@@ -1,0 +1,350 @@
+---
+title: Local Development Setup
+description: Set up OWASP Nest for local development with Docker
+---
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+<CardGroup cols={2}>
+  <Card title="Docker" icon="docker" href="https://docs.docker.com/">
+    Required for running the containerized development environment
+  </Card>
+  <Card title="pre-commit" icon="git" href="https://pre-commit.com/">
+    Required to automate code quality checks
+  </Card>
+  <Card title="gzip" icon="file-zipper">
+    Required for loading database fixtures
+  </Card>
+  <Card title="WSL (Windows Only)" icon="windows" href="https://learn.microsoft.com/en-us/windows/wsl/install">
+    Required for Windows users to enable Linux compatibility
+  </Card>
+</CardGroup>
+
+<Warning>
+  **Windows Users**: You must use WSL terminal (not PowerShell). Ensure WSL integration is enabled in Docker Desktop settings under `Resources → WSL integration`.
+  
+  Do not clone or run the project under `/mnt/c` (Windows C: drive) as this causes significant performance issues.
+</Warning>
+
+## Initial Setup
+
+<Steps>
+  <Step title="Fork and Clone the Repository">
+    Fork the repository on GitHub and clone it to your local machine:
+
+    ```bash
+    git clone https://github.com/<your-account>/<nest-fork>
+    cd Nest
+    ```
+  </Step>
+
+  <Step title="Create Environment Files">
+    Copy the example environment files for both backend and frontend:
+
+    ```bash
+    cp backend/.env.example backend/.env
+    cp frontend/.env.example frontend/.env
+    ```
+
+    <Warning>
+      Ensure all `.env` files are saved in **UTF-8 format without BOM** (Byte Order Mark) to prevent "Unexpected character" errors.
+    </Warning>
+  </Step>
+
+  <Step title="Configure Django Settings">
+    Open `backend/.env` and set the Django configuration to Local:
+
+    ```plaintext backend/.env
+    DJANGO_CONFIGURATION=Local
+    ```
+  </Step>
+
+  <Step title="Set Up Algolia Search">
+    OWASP Nest uses Algolia for search functionality:
+
+    1. Create a free account at [Algolia](https://www.algolia.com/)
+    2. An Algolia app is automatically created during signup (you can skip data import)
+    3. Get your Application ID and Write API Key from the Algolia dashboard
+    4. Update `backend/.env` with your credentials:
+
+    ```plaintext backend/.env
+    DJANGO_ALGOLIA_APPLICATION_ID=<your-algolia-application-id>
+    DJANGO_ALGOLIA_WRITE_API_KEY=<your-algolia-write-api-key>
+    ```
+
+    <Note>
+      The Write API key must have `addObject` permission (index write permissions). The default write key includes this.
+    </Note>
+  </Step>
+
+  <Step title="Start the Application">
+    From the project root directory, start all services with Docker Compose:
+
+    ```bash
+    make run
+    ```
+
+    This command builds and starts:
+    - PostgreSQL database with pgvector extension
+    - Redis cache
+    - Django backend server (port 8000)
+    - Next.js frontend development server (port 3000)
+    - Background worker for async tasks
+
+    <Warning>
+      Keep this terminal session running. Open a new terminal for subsequent commands.
+    </Warning>
+
+    Wait until you see the backend responding at [http://localhost:8000/api/v0](http://localhost:8000/api/v0)
+  </Step>
+
+  <Step title="Load Initial Data">
+    In a new terminal, load the database fixtures:
+
+    ```bash
+    make load-data
+    ```
+
+    This restores the PostgreSQL database dump with sample OWASP data.
+  </Step>
+
+  <Step title="Index Search Data">
+    Index the data to Algolia for search functionality:
+
+    ```bash
+    make index-data
+    ```
+
+    This command runs:
+    - `algolia_reindex` - Indexes all data to Algolia
+    - `algolia_update_replicas` - Configures search replicas
+    - `algolia_update_synonyms` - Updates search synonyms
+  </Step>
+
+  <Step title="Verify Setup">
+    Check that all endpoints are available:
+
+    <CardGroup cols={2}>
+      <Card title="REST API" icon="link" href="http://localhost:8000/api/v0/">
+        Django REST Framework API
+      </Card>
+      <Card title="GraphQL" icon="link" href="http://localhost:8000/graphql/">
+        Strawberry GraphQL endpoint
+      </Card>
+      <Card title="Frontend" icon="link" href="http://localhost:3000">
+        Next.js application
+      </Card>
+      <Card title="Django Admin" icon="link" href="http://localhost:8000/a">
+        Django admin panel (requires superuser)
+      </Card>
+    </CardGroup>
+  </Step>
+</Steps>
+
+## Optional Setup
+
+### Create a Superuser
+
+To access the Django admin interface:
+
+```bash
+make create-superuser
+```
+
+Follow the prompts to set up admin credentials.
+
+### GitHub Data Sync
+
+To fetch live OWASP data from GitHub:
+
+1. Create a [GitHub Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
+2. Add it to `backend/.env`:
+
+```plaintext backend/.env
+GITHUB_TOKEN=<your-github-token>
+```
+
+3. Sync data from GitHub:
+
+```bash
+make sync-data
+```
+
+This command updates projects, chapters, committees, and contribution data.
+
+### Access Internal Dashboards
+
+Some UI sections require specific Django user permissions.
+
+#### Project Health Dashboard (Staff Access)
+
+1. Open Django Admin at [http://localhost:8000/a](http://localhost:8000/a)
+2. Navigate to **GitHub Users** and open your user record
+3. Enable the `is_owasp_staff` checkbox in the Permissions section
+4. Save changes
+5. Clear browser cookies for `localhost:3000` and sign in again
+
+Access the dashboard at [http://localhost:3000/projects/dashboard](http://localhost:3000/projects/dashboard)
+
+#### Mentorship Portal
+
+Grant access as a Project Leader:
+
+1. Open Django Admin → **OWASP** → **Projects**
+2. Open or create a project
+3. Add your GitHub username to the `leaders_raw` field
+4. Save the project
+5. Clear browser cookies and sign in again
+
+Or grant access as a Mentor:
+
+1. Ensure you've logged into the frontend once
+2. Open Django Admin → **Mentorship** → **Mentors**
+3. Click **Add Mentor** and select your GitHub user
+4. Save changes
+5. Clear cookies and sign in again
+
+### NestBot Development
+
+<Warning>
+  **Never install your development Slack app in the OWASP Slack workspace.** This interferes with production NestBot functionality.
+  
+  Always use a separate workspace for testing.
+</Warning>
+
+<Accordion title="Set up NestBot with ngrok">
+  1. Create a free account at [ngrok](https://ngrok.com/)
+  2. Install and configure ngrok using [these instructions](https://ngrok.com/docs/getting-started/)
+  3. Create a static domain at [ngrok domains](https://dashboard.ngrok.com/domains)
+  4. Edit ngrok configuration:
+
+  ```bash
+  ngrok config edit
+  ```
+
+  Add this configuration:
+
+  ```yaml
+  agent:
+    authtoken: <your-auth-token>
+  tunnels:
+    NestBot:
+      addr: 8000
+      proto: http
+      hostname: <your-static-domain>
+  ```
+
+  5. Start ngrok tunnel:
+
+  ```bash
+  ngrok start NestBot
+  ```
+
+  6. Configure Slack app using the [NestBot manifest](https://github.com/OWASP/Nest/blob/main/backend/apps/slack/MANIFEST.yaml)
+  7. Update `backend/.env` with Slack credentials:
+
+  ```plaintext backend/.env
+  DJANGO_SLACK_BOT_TOKEN=<your-slack-bot-token>
+  DJANGO_SLACK_SIGNING_SECRET=<your-slack-signing-secret>
+  ```
+
+  8. Restart the application with `make run`
+</Accordion>
+
+## Common Commands
+
+<CodeGroup>
+```bash Run Application
+make run
+```
+
+```bash Run Code Checks
+make check
+```
+
+```bash Run Tests
+make test
+```
+
+```bash Run Checks and Tests
+make check-test
+```
+
+```bash Clean Everything
+make clean
+```
+</CodeGroup>
+
+## Environment Variables
+
+See the [Environment Variables documentation](/deployment/environment-variables) for a complete list of configuration options.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Unexpected character error">
+    This is usually caused by incorrect `.env` file encoding.
+
+    **Solution**: Open `.env` files in your text editor and save as "UTF-8 without BOM":
+    - In VS Code: Click encoding in bottom-right → "Save with Encoding" → "UTF-8"
+    - Restart the application with `make run`
+  </Accordion>
+
+  <Accordion title="Port already in use">
+    Another process is using ports 3000, 8000, or 5432.
+
+    **Solution**:
+    ```bash
+    # Stop all containers
+    make clean-docker
+    
+    # Or check what's using the port (example for 8000)
+    lsof -i :8000
+    ```
+  </Accordion>
+
+  <Accordion title="Permission denied on WSL">
+    Docker volume permissions issue on Windows.
+
+    **Solution**: Ensure your project is not under `/mnt/c`. Clone it to your WSL home directory:
+    ```bash
+    cd ~
+    git clone https://github.com/<your-account>/<nest-fork>
+    ```
+  </Accordion>
+
+  <Accordion title="Docker build fails">
+    Build cache corruption or network issues.
+
+    **Solution**:
+    ```bash
+    # Clean Docker resources
+    make clean-docker
+    
+    # Prune build cache
+    make prune
+    
+    # Rebuild
+    make run
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="sitemap" href="/development/architecture">
+    Understand the system architecture
+  </Card>
+  <Card title="Backend Development" icon="python" href="/development/backend">
+    Learn about Django backend development
+  </Card>
+  <Card title="Frontend Development" icon="react" href="/development/frontend">
+    Learn about Next.js frontend development
+  </Card>
+  <Card title="Testing" icon="vial" href="/development/testing">
+    Write and run tests
+  </Card>
+</CardGroup>

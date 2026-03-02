@@ -1,0 +1,674 @@
+---
+title: GraphQL Queries
+description: Available GraphQL queries in the OWASP Nest API
+---
+
+OWASP Nest provides a comprehensive set of GraphQL queries for retrieving data about projects, chapters, repositories, users, and more.
+
+## API Keys
+
+### activeApiKeyCount
+
+Get the count of active API keys for the authenticated user.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+query {
+  activeApiKeyCount
+}
+```
+
+```json Response
+{
+  "data": {
+    "activeApiKeyCount": 2
+  }
+}
+```
+</CodeGroup>
+
+### apiKeys
+
+Get all active API keys for the authenticated user.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+query {
+  apiKeys {
+    uuid
+    name
+    createdAt
+    expiresAt
+    isRevoked
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "apiKeys": [
+      {
+        "uuid": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Production API Key",
+        "createdAt": "2024-01-15T10:30:00Z",
+        "expiresAt": "2025-01-15T10:30:00Z",
+        "isRevoked": false
+      },
+      {
+        "uuid": "660e8400-e29b-41d4-a716-446655440001",
+        "name": "Development API Key",
+        "createdAt": "2024-02-01T14:20:00Z",
+        "expiresAt": "2024-08-01T14:20:00Z",
+        "isRevoked": false
+      }
+    ]
+  }
+}
+```
+</CodeGroup>
+
+## GitHub Data
+
+### repository
+
+Get a specific repository by organization and repository key.
+
+<CodeGroup>
+```graphql Request
+query {
+  repository(
+    organizationKey: "owasp"
+    repositoryKey: "www-project-juice-shop"
+  ) {
+    name
+    description
+    starsCount
+    forksCount
+    openIssuesCount
+    languages
+    url
+    organization {
+      login
+      name
+    }
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "repository": {
+      "name": "www-project-juice-shop",
+      "description": "OWASP Juice Shop: Probably the most modern and sophisticated insecure web application",
+      "starsCount": 9500,
+      "forksCount": 7800,
+      "openIssuesCount": 42,
+      "languages": ["JavaScript", "TypeScript", "HTML", "CSS"],
+      "url": "https://github.com/owasp/www-project-juice-shop",
+      "organization": {
+        "login": "owasp",
+        "name": "OWASP Foundation"
+      }
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `organizationKey` (String!): The login of the organization
+- `repositoryKey` (String!): The unique key of the repository
+
+### repositories
+
+Get repositories for an organization, ordered by stars.
+
+<CodeGroup>
+```graphql Request
+query {
+  repositories(organization: "owasp", limit: 5) {
+    name
+    starsCount
+    description
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "repositories": [
+      {
+        "name": "owasp-mastg",
+        "starsCount": 11200,
+        "description": "The Mobile Application Security Testing Guide"
+      },
+      {
+        "name": "www-project-juice-shop",
+        "starsCount": 9500,
+        "description": "OWASP Juice Shop"
+      }
+    ]
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `organization` (String!): The login of the organization
+- `limit` (Int): Maximum number of repositories to return (default: 12, max: 1000)
+
+### recentIssues
+
+Get recent GitHub issues with optional filtering.
+
+<CodeGroup>
+```graphql Request
+query {
+  recentIssues(
+    organization: "owasp"
+    limit: 3
+    distinct: false
+  ) {
+    number
+    title
+    state
+    createdAt
+    author {
+      login
+      avatarUrl
+    }
+    repository {
+      name
+    }
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "recentIssues": [
+      {
+        "number": 1523,
+        "title": "Add support for OAuth2 authentication",
+        "state": "OPEN",
+        "createdAt": "2024-03-15T09:20:00Z",
+        "author": {
+          "login": "contributor123",
+          "avatarUrl": "https://avatars.githubusercontent.com/u/123456"
+        },
+        "repository": {
+          "name": "www-project-juice-shop"
+        }
+      }
+    ]
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `limit` (Int): Maximum number of issues to return (default: 5, max: 1000)
+- `distinct` (Boolean): Return unique issues per author (default: false)
+- `login` (String): Filter by author's GitHub login
+- `organization` (String): Filter by organization login
+
+### user
+
+Get a GitHub user profile by login.
+
+<CodeGroup>
+```graphql Request
+query {
+  user(login: "bkimminich") {
+    login
+    name
+    avatarUrl
+    bio
+    company
+    location
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "user": {
+      "login": "bkimminich",
+      "name": "Björn Kimminich",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/123456",
+      "bio": "OWASP Juice Shop Project Leader",
+      "company": "OWASP",
+      "location": "Germany"
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `login` (String!): The GitHub login of the user
+
+### topContributedRepositories
+
+Get repositories a user has contributed to, ordered by contribution count.
+
+<CodeGroup>
+```graphql Request
+query {
+  topContributedRepositories(login: "johndoe") {
+    name
+    starsCount
+    description
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "topContributedRepositories": [
+      {
+        "name": "owasp-mastg",
+        "starsCount": 11200,
+        "description": "The Mobile Application Security Testing Guide"
+      }
+    ]
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `login` (String!): The GitHub login of the user
+
+## OWASP Projects
+
+### project
+
+Get a specific OWASP project by key.
+
+<CodeGroup>
+```graphql Request
+query {
+  project(key: "juice-shop") {
+    name
+    summary
+    level
+    type
+    isActive
+    starsCount
+    forksCount
+    contributorsCount
+    languages
+    topics
+    repositories {
+      name
+      url
+    }
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "project": {
+      "name": "OWASP Juice Shop",
+      "summary": "Probably the most modern and sophisticated insecure web application",
+      "level": "flagship",
+      "type": "tool",
+      "isActive": true,
+      "starsCount": 9500,
+      "forksCount": 7800,
+      "contributorsCount": 156,
+      "languages": ["JavaScript", "TypeScript"],
+      "topics": ["security", "owasp", "vulnerable-app"],
+      "repositories": [
+        {
+          "name": "juice-shop",
+          "url": "https://github.com/juice-shop/juice-shop"
+        }
+      ]
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `key` (String!): The project key (without "www-project-" prefix)
+
+### recentProjects
+
+Get recently created active projects.
+
+<CodeGroup>
+```graphql Request
+query {
+  recentProjects(limit: 3) {
+    name
+    summary
+    level
+    createdAt
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "recentProjects": [
+      {
+        "name": "OWASP Secure Headers",
+        "summary": "HTTP security headers reference",
+        "level": "lab",
+        "createdAt": "2024-03-01T12:00:00Z"
+      }
+    ]
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `limit` (Int): Maximum number to return (default: 8, max: 1000)
+
+### searchProjects
+
+Search for active projects by name.
+
+<CodeGroup>
+```graphql Request
+query {
+  searchProjects(query: "security") {
+    name
+    summary
+    level
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "searchProjects": [
+      {
+        "name": "OWASP Application Security Verification Standard",
+        "summary": "Application Security Verification Standard",
+        "level": "flagship"
+      }
+    ]
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `query` (String!): Search query (min: 3 chars, max: 100 chars)
+
+### isProjectLeader
+
+Check if a GitHub user is listed as a project leader.
+
+<CodeGroup>
+```graphql Request
+query {
+  isProjectLeader(login: "bkimminich")
+}
+```
+
+```json Response
+{
+  "data": {
+    "isProjectLeader": true
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `login` (String!): GitHub login to check
+
+## OWASP Chapters
+
+### chapter
+
+Get a specific OWASP chapter by key.
+
+<CodeGroup>
+```graphql Request
+query {
+  chapter(key: "london") {
+    name
+    region
+    url
+    createdAt
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "chapter": {
+      "name": "OWASP London",
+      "region": "Europe",
+      "url": "https://owasp.org/www-chapter-london/",
+      "createdAt": "2020-05-10T10:00:00Z"
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `key` (String!): The chapter key (without "www-chapter-" prefix)
+
+### recentChapters
+
+Get recently created active chapters.
+
+<CodeGroup>
+```graphql Request
+query {
+  recentChapters(limit: 5) {
+    name
+    region
+    createdAt
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "recentChapters": [
+      {
+        "name": "OWASP Barcelona",
+        "region": "Europe",
+        "createdAt": "2024-01-15T10:00:00Z"
+      }
+    ]
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `limit` (Int): Maximum number to return (default: 8, max: 1000)
+
+## OWASP Events
+
+### upcomingEvents
+
+Get upcoming OWASP events.
+
+<CodeGroup>
+```graphql Request
+query {
+  upcomingEvents(limit: 3) {
+    name
+    startDate
+    endDate
+    location
+    url
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "upcomingEvents": [
+      {
+        "name": "OWASP Global AppSec Dublin 2024",
+        "startDate": "2024-06-24",
+        "endDate": "2024-06-28",
+        "location": "Dublin, Ireland",
+        "url": "https://dublin.appsecglobal.org/"
+      }
+    ]
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `limit` (Int): Maximum number to return (default: 6, max: 1000)
+
+## Mentorship Programs
+
+### getProgram
+
+Get a mentorship program by key.
+
+<CodeGroup>
+```graphql Request
+query {
+  getProgram(programKey: "gsoc-2024") {
+    name
+    description
+    status
+    startedAt
+    endedAt
+    menteesLimit
+    domains
+    tags
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "getProgram": {
+      "name": "Google Summer of Code 2024",
+      "description": "OWASP participation in GSoC 2024",
+      "status": "PUBLISHED",
+      "startedAt": "2024-05-27T00:00:00Z",
+      "endedAt": "2024-08-26T23:59:59Z",
+      "menteesLimit": 10,
+      "domains": ["web-security", "mobile-security"],
+      "tags": ["gsoc", "mentorship"]
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `programKey` (String!): The program key
+
+### myPrograms
+
+Get paginated programs where the authenticated user is an admin or mentor.
+
+**Authentication**: Required
+
+<CodeGroup>
+```graphql Request
+query {
+  myPrograms(search: "", page: 1, limit: 10) {
+    currentPage
+    totalPages
+    programs {
+      name
+      status
+      userRole
+    }
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "myPrograms": {
+      "currentPage": 1,
+      "totalPages": 1,
+      "programs": [
+        {
+          "name": "Google Summer of Code 2024",
+          "status": "PUBLISHED",
+          "userRole": "admin"
+        }
+      ]
+    }
+  }
+}
+```
+</CodeGroup>
+
+**Arguments**:
+- `search` (String): Search query for program name (default: "")
+- `page` (Int): Page number (default: 1)
+- `limit` (Int): Items per page (default: 24, max: 1000)
+
+## Using Variables
+
+You can use variables to make your queries more dynamic:
+
+<CodeGroup>
+```graphql Query
+query GetProject($projectKey: String!) {
+  project(key: $projectKey) {
+    name
+    summary
+    level
+  }
+}
+```
+
+```json Variables
+{
+  "projectKey": "juice-shop"
+}
+```
+
+```json Response
+{
+  "data": {
+    "project": {
+      "name": "OWASP Juice Shop",
+      "summary": "Probably the most modern and sophisticated insecure web application",
+      "level": "flagship"
+    }
+  }
+}
+```
+</CodeGroup>
+
+## Next Steps
+
+- [Explore mutations](/api/graphql/mutations)
+- [Learn about authentication](/api/graphql/overview#authentication)
+- [View REST API documentation](/api/overview)

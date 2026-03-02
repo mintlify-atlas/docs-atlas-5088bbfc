@@ -1,0 +1,426 @@
+---
+title: Docker Deployment
+description: Deploy OWASP Nest using Docker and Docker Compose
+icon: docker
+---
+
+## Overview
+
+OWASP Nest uses Docker for both development and production deployments. The production setup includes five containerized services: backend API, frontend web app, PostgreSQL database with pgvector, Redis cache, and an RQ worker for background tasks.
+
+## Prerequisites
+
+- **Docker**: [Install Docker](https://docs.docker.com/get-docker/)
+- **Docker Compose**: Included with Docker Desktop
+- **Git**: For cloning the repository
+- **WSL** (Windows users): [Install WSL](https://learn.microsoft.com/en-us/windows/wsl/install)
+
+<Warning>
+Windows users must use WSL terminal (not PowerShell) to run Docker commands. Cloning or running the project under `/mnt/c` (Windows C: drive) can cause performance issues and Docker permission errors.
+</Warning>
+
+## Architecture
+
+The production Docker Compose setup includes:
+
+- **Backend**: Django application (`owasp/nest:backend-production`)
+- **Frontend**: Next.js application (`owasp/nest:frontend-production`)
+- **Database**: PostgreSQL 16 with pgvector extension
+- **Cache**: Redis 8.6 with password authentication
+- **Worker**: RQ worker for AI and background tasks
+
+### Network Architecture
+
+The services are organized into three isolated networks:
+
+- `nest-app-network`: Frontend, backend, and worker communication
+- `nest-cache-network`: Backend and worker to Redis cache
+- `nest-db-network`: Backend and worker to PostgreSQL database
+
+## Production Deployment
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/OWASP/Nest.git
+cd Nest
+```
+
+### 2. Create Environment Files
+
+The production setup requires five environment files:
+
+```bash
+# Create directory for production deployment
+mkdir -p docker-compose/production
+cd docker-compose/production
+
+# Create environment files
+touch .env.backend
+touch .env.frontend
+touch .env.db
+touch .env.cache
+```
+
+<Warning>
+Ensure all `.env` files are saved in **UTF-8 format without BOM** (Byte Order Mark). This prevents "Unexpected character" errors during execution.
+</Warning>
+
+See [Environment Variables](/deployment/environment-variables) for complete configuration reference.
+
+### 3. Configure Database (.env.db)
+
+```bash
+POSTGRES_DB=production-nest-db
+POSTGRES_USER=nest-user-production
+POSTGRES_PASSWORD=your-secure-database-password
+```
+
+### 4. Configure Cache (.env.cache)
+
+```bash
+REDIS_PASSWORD=your-secure-redis-password
+```
+
+### 5. Copy Docker Compose File
+
+Create `compose.yaml` in your production directory:
+
+```yaml
+services:
+  production-nest-backend:
+    container_name: production-nest-backend
+    entrypoint: /home/owasp/entrypoint.sh
+    image: owasp/nest:backend-production
+    env_file: .env.backend
+    depends_on:
+      production-nest-cache:
+        condition: service_healthy
+      production-nest-db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - nest-app-network
+      - nest-cache-network
+      - nest-db-network
+    volumes:
+      - ./.github.pem:/home/owasp/.github.pem:ro
+      - ./backend/data:/home/owasp/data
+
+  production-nest-cache:
+    container_name: production-nest-cache
+    image: redis:8.6-alpine3.23
+    command: >
+      sh -c '
+        redis-server --requirepass $$REDIS_PASSWORD --maxmemory 100mb --maxmemory-policy allkeys-lru
+      '
+    env_file: .env.cache
+    healthcheck:
+      interval: 5s
+      retries: 5
+      test: [CMD, redis-cli, -a, $$REDIS_PASSWORD, ping]
+      timeout: 5s
+    restart: unless-stopped
+    volumes:
+      - ./volumes/cache:/data
+    networks:
+      - nest-cache-network
+
+  production-nest-db:
+    container_name: production-nest-db
+    image: pgvector/pgvector:pg16
+    env_file: .env.db
+    healthcheck:
+      interval: 5s
+      retries: 5
+      test: [CMD, pg_isready, -U, nest-user-production, -d, production-nest-db]
+      timeout: 5s
+    restart: unless-stopped
+    volumes:
+      - ./volumes/db:/var/lib/postgresql/data
+    networks:
+      - nest-db-network
+
+  production-nest-frontend:
+    container_name: production-nest-frontend
+    env_file: .env.frontend
+    image: owasp/nest:frontend-production
+    restart: unless-stopped
+    networks:
+      - nest-app-network
+
+  production-nest-worker:
+    container_name: production-nest-worker
+    image: owasp/nest:backend-production
+    env_file: .env.backend
+    command: >
+      sh -c '
+        python manage.py rqworker ai --with-scheduler
+      '
+    depends_on:
+      production-nest-backend:
+        condition: service_started
+      production-nest-cache:
+        condition: service_healthy
+      production-nest-db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - nest-app-network
+      - nest-cache-network
+      - nest-db-network
+    volumes:
+      - ./backend/data:/home/owasp/data
+
+networks:
+  nest-app-network:
+  nest-cache-network:
+  nest-db-network:
+```
+
+### 6. Build Docker Images
+
+#### Backend Image
+
+The backend uses Python 3.13.12 on Alpine Linux with Poetry for dependency management.
+
+```bash
+# From project root
+docker build -t owasp/nest:backend-production -f docker/backend/Dockerfile backend/
+```
+
+**Backend Dockerfile highlights:**
+- Multi-stage build for optimized image size
+- Alpine Linux base (Python 3.13.12-alpine3.23)
+- Poetry for Python dependency management
+- Non-root user (`owasp:owasp` with UID/GID 1000)
+- PostgreSQL 16 client included
+- Make available for commands
+
+#### Frontend Image
+
+The frontend uses Node.js 24.14 with pnpm and Next.js standalone output.
+
+```bash
+# From project root
+docker build -t owasp/nest:frontend-production -f docker/frontend/Dockerfile frontend/
+```
+
+**Frontend Dockerfile highlights:**
+- Multi-stage build pattern
+- Node.js 24.14-alpine3.23
+- pnpm package manager with Corepack
+- Next.js standalone output mode
+- Security patches for CVE-2026-23745, CVE-2026-26960, CVE-2026-25547, CVE-2026-27903, CVE-2026-27904
+- Non-root user (`nextjs:nodejs`)
+- Port 3000 exposed
+
+### 7. Start Services
+
+```bash
+docker compose up -d
+```
+
+Verify all services are running:
+
+```bash
+docker compose ps
+```
+
+Expected output:
+```
+NAME                          STATUS
+production-nest-backend       Up
+production-nest-cache         Up (healthy)
+production-nest-db            Up (healthy)
+production-nest-frontend      Up
+production-nest-worker        Up
+```
+
+### 8. Initialize Database
+
+Run migrations:
+
+```bash
+docker compose exec production-nest-backend make migrate
+```
+
+Load initial data (if available):
+
+```bash
+docker compose exec production-nest-backend make load-data
+```
+
+### 9. Index Data in Algolia
+
+```bash
+docker compose exec production-nest-backend make index-data
+```
+
+## Volume Management
+
+Persistent data is stored in local volumes:
+
+- `./volumes/db`: PostgreSQL database data
+- `./volumes/cache`: Redis persistence
+- `./backend/data`: Backend application data
+- `./.github.pem`: GitHub App private key (read-only mount)
+
+<Warning>
+Always backup your database before performing upgrades or maintenance:
+
+```bash
+docker compose exec production-nest-db pg_dump -U nest-user-production production-nest-db > backup.sql
+```
+</Warning>
+
+## Service Configuration
+
+### Cache Configuration
+
+Redis is configured with:
+- Password authentication (required)
+- 100MB memory limit
+- `allkeys-lru` eviction policy
+- Health checks every 5 seconds
+
+### Database Configuration
+
+PostgreSQL includes:
+- pgvector extension for vector similarity search
+- Health checks via `pg_isready`
+- Persistent storage in `./volumes/db`
+
+### Worker Configuration
+
+The RQ worker:
+- Processes AI-related background tasks
+- Runs with scheduler enabled
+- Shares backend image and configuration
+- Requires both cache and database connectivity
+
+## Monitoring
+
+### View Logs
+
+```bash
+# All services
+docker compose logs -f
+
+# Specific service
+docker compose logs -f production-nest-backend
+docker compose logs -f production-nest-worker
+```
+
+### Health Checks
+
+Check service health:
+
+```bash
+docker compose ps
+```
+
+Redis health:
+
+```bash
+docker compose exec production-nest-cache redis-cli -a your-redis-password ping
+```
+
+Database health:
+
+```bash
+docker compose exec production-nest-db pg_isready -U nest-user-production
+```
+
+## Updates and Maintenance
+
+### Update Images
+
+```bash
+# Pull latest images
+docker compose pull
+
+# Rebuild custom images
+docker build -t owasp/nest:backend-production -f docker/backend/Dockerfile backend/
+docker build -t owasp/nest:frontend-production -f docker/frontend/Dockerfile frontend/
+
+# Restart services
+docker compose up -d
+```
+
+### Apply Environment Variable Changes
+
+<Warning>
+You must restart the application to apply any `.env` file changes.
+</Warning>
+
+```bash
+docker compose restart
+```
+
+## Troubleshooting
+
+### "Unexpected character" error
+
+This error occurs when `.env` files have incorrect encoding:
+
+1. Open `.env` files in a text editor (e.g., VS Code)
+2. Save as "UTF-8 without BOM"
+3. In VS Code: Click encoding in bottom-right → Save with Encoding → UTF-8 (not UTF-8 with BOM)
+4. Restart services: `docker compose restart`
+
+### Database Connection Issues
+
+Verify database is healthy:
+
+```bash
+docker compose ps production-nest-db
+```
+
+Check database logs:
+
+```bash
+docker compose logs production-nest-db
+```
+
+Ensure `DJANGO_DB_HOST`, `DJANGO_DB_USER`, `DJANGO_DB_PASSWORD` in `.env.backend` match `.env.db` values.
+
+### Cache Connection Issues
+
+Test Redis connection:
+
+```bash
+docker compose exec production-nest-cache redis-cli -a your-redis-password ping
+```
+
+Verify `DJANGO_REDIS_PASSWORD` in `.env.backend` matches `REDIS_PASSWORD` in `.env.cache`.
+
+### Worker Not Processing Tasks
+
+Check worker logs:
+
+```bash
+docker compose logs -f production-nest-worker
+```
+
+Verify worker is connected to Redis and database:
+
+```bash
+docker compose exec production-nest-worker python manage.py rqworker --help
+```
+
+## Security Best Practices
+
+1. **Use strong passwords** for database and Redis
+2. **Mount secrets as read-only** (e.g., `.github.pem:ro`)
+3. **Run as non-root users** (enforced in Dockerfiles)
+4. **Isolate networks** (separate app, cache, and database networks)
+5. **Keep images updated** (regular security patches)
+6. **Backup regularly** (database and volumes)
+7. **Use environment variables** (never hardcode secrets)
+
+## Next Steps
+
+- [Configure Environment Variables](/deployment/environment-variables)
+- [Set up Infrastructure on AWS](/deployment/infrastructure)
+- [Configure domain and SSL certificates](/deployment/infrastructure#configure-domain-and-frontend)
