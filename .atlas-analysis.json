@@ -1,0 +1,139 @@
+{
+  "projectType": "saas",
+  "projectName": "OWASP Nest",
+  "projectDescription": "A comprehensive community platform for discovering OWASP projects, finding contribution opportunities, and engaging with the security community.",
+  "theme": "mint",
+  "primaryColor": "#2563EB",
+  "lightColor": "#3B82F6",
+  "darkColor": "#1E40AF",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Platform Features",
+            "pages": [
+              "features/search",
+              "features/projects",
+              "features/chapters",
+              "features/events",
+              "features/slack-bot",
+              "features/ai-insights"
+            ]
+          },
+          {
+            "group": "User Guides",
+            "pages": [
+              "guides/contributing",
+              "guides/finding-issues",
+              "guides/using-search",
+              "guides/chapters-map"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/setup",
+              "development/architecture",
+              "development/backend",
+              "development/frontend",
+              "development/testing"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/docker",
+              "deployment/infrastructure",
+              "deployment/environment-variables"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "REST API",
+            "pages": [
+              "api/rest/projects",
+              "api/rest/chapters",
+              "api/rest/committees",
+              "api/rest/events",
+              "api/rest/issues",
+              "api/rest/repositories",
+              "api/rest/members"
+            ]
+          },
+          {
+            "group": "GraphQL API",
+            "pages": [
+              "api/graphql/overview",
+              "api/graphql/queries",
+              "api/graphql/mutations"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Community",
+        "groups": [
+          {
+            "group": "Contributing",
+            "pages": [
+              "community/contributing",
+              "community/code-of-conduct",
+              "community/security"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "community/leaders",
+              "community/gsoc",
+              "community/mentorship"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Advanced search capabilities for OWASP projects and issues",
+    "Interactive chapters proximity map",
+    "Slack bot integration for real-time updates",
+    "AI-generated insights for project issues",
+    "Comprehensive REST and GraphQL APIs",
+    "GitHub integration for project tracking",
+    "Event discovery and calendar integration",
+    "Community engagement tools"
+  ],
+  "publicApiSurface": [
+    "GET /api/v0/projects/",
+    "GET /api/v0/projects/{key}/",
+    "GET /api/v0/chapters/",
+    "GET /api/v0/chapters/{key}/",
+    "GET /api/v0/committees/",
+    "GET /api/v0/events/",
+    "GET /api/v0/issues/",
+    "GET /api/v0/repositories/",
+    "GET /api/v0/members/",
+    "POST /graphql/ - GraphQL endpoint for queries and mutations",
+    "NestBot Slack commands: /ai, /board, /chapters, /committees, /community, /contribute, /events, /gsoc, /jobs, /leaders, /news, /owasp, /projects, /users"
+  ]
+}
